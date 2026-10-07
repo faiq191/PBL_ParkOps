@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "488141518443",
+    "project_id": "pblparkopsfaiq",
+    "storage_bucket": "pblparkopsfaiq.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:488141518443:android:b07d0c923b1bc8e863a32e",
+        "android_client_info": {
+          "package_name": "com.example.pbl_parkops"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBwOXmf8TYljZnDcjaC2mTobmwpLHcB7o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
