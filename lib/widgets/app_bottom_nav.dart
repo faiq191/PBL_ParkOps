@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../pages/camera_pages.dart';
 import '../pages/homepage.dart' show HomepagePages;
 import '../pages/map_pages.dart';
+import '../pages/information_pages.dart';
 import '../theme/app_colors.dart';
 
 /// Shared bottom bar. 0=Home, 1=Camera, 2=Map, 3=Info.
@@ -16,6 +17,7 @@ class AppBottomNav extends StatelessWidget {
       0 => const HomepagePages(),
       1 => const CameraPages(),
       2 => const MapPages(),
+      3 => const InformationPages(),
       _ => null,
     };
     if (page == null) {
