@@ -10,7 +10,7 @@ import 'camera_pages.dart';
 class MapPages extends StatelessWidget {
   const MapPages({super.key});
 
-  static const _cols = 8;
+  static const _cols = 12; // same grid as the camera page
 
   @override
   Widget build(BuildContext context) {
@@ -84,34 +84,47 @@ class MapPages extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          AspectRatio(
-            aspectRatio: 4 / 3,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.paper,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
+          if (lot.available > 0)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
                 children: [
-                  for (int r = 0; r < (lot.total / _cols).ceil(); r++)
-                    Expanded(
-                      child: Row(
-                        children: [
-                          for (int c = 0; c < _cols; c++)
-                            Expanded(
-                              child: r * _cols + c < lot.total
-                                  ? _MapBay(
-                                      index: r * _cols + c,
-                                      occupied: lot.occupied[r * _cols + c],
-                                    )
-                                  : const SizedBox.shrink(),
-                            ),
-                        ],
-                      ),
-                    ),
+                  const Icon(Icons.near_me, size: 14, color: AppColors.teal),
+                  const SizedBox(width: 6),
+                  Text('First free bay: ${lot.occupied.indexOf(false) + 1}',
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.teal)),
                 ],
               ),
+            ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.paper,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                for (int r = 0; r < (lot.total / _cols).ceil(); r++)
+                  SizedBox(
+                    height: 40,
+                    child: Row(
+                      children: [
+                        for (int c = 0; c < _cols; c++)
+                          Expanded(
+                            child: r * _cols + c < lot.total
+                                ? _MapBay(
+                                    index: r * _cols + c,
+                                    occupied: lot.occupied[r * _cols + c],
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
@@ -119,7 +132,7 @@ class MapPages extends StatelessWidget {
             children: [
               _LegendDot(color: AppColors.ok, label: 'Available'),
               SizedBox(width: 16),
-              _LegendDot(color: AppColors.full, label: 'Occupied'),
+              _LegendDot(color: Color(0xFFB8C1CC), label: 'Occupied'),
             ],
           ),
         ],
@@ -164,7 +177,6 @@ class _MapBay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = occupied ? AppColors.full : AppColors.ok;
     return GestureDetector(
       onTap: () => ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -174,16 +186,21 @@ class _MapBay extends StatelessWidget {
               'Bay ${index + 1}: ${occupied ? 'occupied' : 'available'}'),
         )),
       child: Padding(
-        padding: const EdgeInsets.all(2),
+        padding: const EdgeInsets.all(1.5),
         child: DecoratedBox(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(4),
-            color: color.withAlpha(60),
-            border: Border.all(color: color, width: 1.5),
+            // Free bays are solid green so they pop; occupied are muted grey.
+            color: occupied ? const Color(0xFFD5DBE3) : AppColors.ok,
           ),
           child: Center(
-            child: Icon(occupied ? Icons.directions_car : Icons.check,
-                size: 14, color: color),
+            child: occupied
+                ? null
+                : Text('${index + 1}',
+                    style: const TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white)),
           ),
         ),
       ),
@@ -205,8 +222,7 @@ class _LegendDot extends StatelessWidget {
           width: 10,
           height: 10,
           decoration: BoxDecoration(
-            color: color.withAlpha(90),
-            border: Border.all(color: color, width: 1.5),
+            color: color,
             borderRadius: BorderRadius.circular(3),
           ),
         ),
