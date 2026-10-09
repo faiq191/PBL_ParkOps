@@ -19,9 +19,11 @@ class DummyLot {
     required this.available,
     required this.camera,
   }) {
+    // Distribute free slots evenly: k-th free index = floor(k * total / available)
     final free = <int>{
       for (int k = 0; k < available; k++) (k * total / available).floor(),
     };
+    // true = occupied; any slot not in the 'free' set is occupied
     occupied = List.generate(total, (i) => !free.contains(i));
   }
 

@@ -11,6 +11,7 @@ class AppBottomNav extends StatelessWidget {
 
   void _go(BuildContext context, int i) {
     if (i == currentIndex) return;
+    // Map tab index to a page; null means the page doesn't exist yet (Info)
     final Widget? page = switch (i) {
       0 => const HomepagePages(),
       1 => const CameraPages(),

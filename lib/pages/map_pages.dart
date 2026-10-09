@@ -91,6 +91,7 @@ class MapPages extends StatelessWidget {
                 children: [
                   const Icon(Icons.near_me, size: 14, color: AppColors.teal),
                   const SizedBox(width: 6),
+                  // First free bay = first index holding false; +1 to display as 1-based
                   Text('First free bay: ${lot.occupied.indexOf(false) + 1}',
                       style: const TextStyle(
                           fontSize: 12,
@@ -107,6 +108,7 @@ class MapPages extends StatelessWidget {
             ),
             child: Column(
               children: [
+                // Grid rows = total slots divided by columns, rounded up
                 for (int r = 0; r < (lot.total / _cols).ceil(); r++)
                   SizedBox(
                     height: 40,

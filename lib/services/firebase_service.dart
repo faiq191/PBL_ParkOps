@@ -4,6 +4,7 @@ import '../models/parking_zone.dart';
 class FirebaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  // Realtime stream of all parking zones; UI updates automatically on Firestore changes
   Stream<List<ParkingZone>> watchZones() {
     return _db.collection('parking_zones').snapshots().map((snapshot) {
       return snapshot.docs
@@ -20,6 +21,7 @@ class FirebaseService {
         .map((doc) => ParkingZone.fromFirestore(doc.id, doc.data()!));
   }
 
+  // Realtime stream of parking slots for one zone from the 'slots' subcollection
   Stream<List<ParkingSlot>> watchSlots(String zoneId) {
     return _db
         .collection('parking_zones')

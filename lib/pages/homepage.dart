@@ -13,6 +13,7 @@ class HomepagePages extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Aggregate free and total slots across all lots (dummy data) for the hero card
     final totalAvailable =
         dummyLots.fold<int>(0, (sum, l) => sum + l.available);
     final totalSlots = dummyLots.fold<int>(0, (sum, l) => sum + l.total);
@@ -20,6 +21,7 @@ class HomepagePages extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.paper,
       appBar: const ParkOpsAppBar(section: 'Homepage', title: 'ParkOps'),
+      // Rebuilds automatically whenever the selected lot changes (global state in dummy_lots.dart)
       body: ValueListenableBuilder<int>(
         valueListenable: selectedLotIndex,
         builder: (_, idx, __) => ListView(
@@ -71,6 +73,7 @@ class HomepagePages extends StatelessWidget {
               _LotRow(
                 lot: dummyLots[i],
                 selected: i == idx,
+                // Update the global notifier so Camera & Map tabs follow the selection
                 onTap: () => selectedLotIndex.value = i,
               ),
           ],

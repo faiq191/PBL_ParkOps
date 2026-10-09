@@ -21,8 +21,11 @@ class _CameraPagesState extends State<CameraPages> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.paper,
-      appBar:
-          const ParkOpsAppBar(section: 'Camera', title: 'Parking Lot Camera'),
+      appBar: const ParkOpsAppBar(
+        section: 'Camera',
+        title: 'Parking Lot Camera',
+      ),
+      // Rebuild whenever the selected lot changes (global state in dummy_lots.dart)
       body: ValueListenableBuilder<int>(
         valueListenable: selectedLotIndex,
         builder: (_, idx, __) {
@@ -38,23 +41,26 @@ class _CameraPagesState extends State<CameraPages> {
                 children: [
                   Expanded(
                     child: StatCard(
-                        value: '${lot.available}',
-                        label: 'Available',
-                        color: AppColors.teal),
+                      value: '${lot.available}',
+                      label: 'Available',
+                      color: AppColors.teal,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: StatCard(
-                        value: '${lot.occupiedCount}',
-                        label: 'Occupied',
-                        color: AppColors.full),
+                      value: '${lot.occupiedCount}',
+                      label: 'Occupied',
+                      color: AppColors.full,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: StatCard(
-                        value: '${lot.total}',
-                        label: 'Total bays',
-                        color: AppColors.navy),
+                      value: '${lot.total}',
+                      label: 'Total bays',
+                      color: AppColors.navy,
+                    ),
                   ),
                 ],
               ),
@@ -84,19 +90,27 @@ class _CameraPagesState extends State<CameraPages> {
             padding: const EdgeInsets.fromLTRB(14, 8, 6, 8),
             child: Row(
               children: [
-                const Icon(Icons.videocam_outlined,
-                    color: AppColors.navy, size: 20),
+                const Icon(
+                  Icons.videocam_outlined,
+                  color: AppColors.navy,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
-                Text('${lot.camera}  -  ${lot.name}',
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.navy)),
+                Text(
+                  '${lot.camera}  -  ${lot.name}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.navy,
+                  ),
+                ),
                 const Spacer(),
                 IconButton(
                   onPressed: () {},
-                  icon: const Icon(Icons.keyboard_arrow_down,
-                      color: AppColors.navy),
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: AppColors.navy,
+                  ),
                 ),
               ],
             ),
@@ -106,13 +120,17 @@ class _CameraPagesState extends State<CameraPages> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
             child: Row(
               children: [
-                const Text('Detection overlay',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.navy)),
+                const Text(
+                  'Detection overlay',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.navy,
+                  ),
+                ),
                 const Spacer(),
                 Switch(
+                  // Toggle the detection overlay on top of the camera feed
                   value: _overlay,
                   activeTrackColor: AppColors.navy,
                   onChanged: (v) => setState(() => _overlay = v),
@@ -140,11 +158,14 @@ class _CameraPagesState extends State<CameraPages> {
               Icon(Icons.sync, color: AppColors.navy, size: 18),
               SizedBox(width: 8),
               Expanded(
-                child: Text('Camera delayed by 1 minute',
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.navy)),
+                child: Text(
+                  'Camera delayed by 1 minute',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.navy,
+                  ),
+                ),
               ),
             ],
           ),
@@ -164,21 +185,24 @@ class _CameraPagesState extends State<CameraPages> {
       width: double.infinity,
       height: 52,
       child: ElevatedButton(
-        onPressed: () => Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MapPages()),
-        ),
+        onPressed: () => Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => const MapPages())),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.navy,
           foregroundColor: Colors.white,
           elevation: 0,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
         child: const Row(
           children: [
             SizedBox(width: 6),
-            Text('Find a space on the map',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+            Text(
+              'Find a space on the map',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            ),
             Spacer(),
             Icon(Icons.map_outlined, size: 20),
             SizedBox(width: 6),
@@ -195,6 +219,7 @@ class _DummyCameraFeed extends StatelessWidget {
   final bool showOverlay;
   const _DummyCameraFeed({required this.lot, required this.showOverlay});
 
+  // Number of bay columns in the feed grid; must match the grid on the Map page
   static const _cols = 12;
 
   @override
@@ -207,11 +232,14 @@ class _DummyCameraFeed extends StatelessWidget {
           children: [
             if (showOverlay)
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 28),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 28,
+                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    // Grid rows = total slots divided by columns, rounded up
                     for (int r = 0; r < (lot.total / _cols).ceil(); r++)
                       SizedBox(
                         height: 40,
@@ -221,7 +249,9 @@ class _DummyCameraFeed extends StatelessWidget {
                               if (c > 0) const SizedBox(width: 3),
                               Expanded(
                                 child: r * _cols + c < lot.total
-                                    ? _Bay(occupied: lot.occupied[r * _cols + c])
+                                    ? _Bay(
+                                        occupied: lot.occupied[r * _cols + c],
+                                      )
                                     : const SizedBox.shrink(),
                               ),
                             ],
@@ -240,8 +270,10 @@ class _DummyCameraFeed extends StatelessWidget {
                   children: [
                     Icon(Icons.circle, size: 6, color: Color(0xFF7FD8C8)),
                     SizedBox(width: 6),
-                    Text('1 min delay',
-                        style: TextStyle(color: Colors.white, fontSize: 10)),
+                    Text(
+                      '1 min delay',
+                      style: TextStyle(color: Colors.white, fontSize: 10),
+                    ),
                   ],
                 ),
               ),
@@ -257,8 +289,12 @@ class _DummyCameraFeed extends StatelessWidget {
             Positioned(
               bottom: 10,
               left: 10,
-              child: _pill(Text('${lot.camera}  /  TODAY 09:11:11',
-                  style: const TextStyle(color: Colors.white, fontSize: 9))),
+              child: _pill(
+                Text(
+                  '${lot.camera}  /  TODAY 09:11:11',
+                  style: const TextStyle(color: Colors.white, fontSize: 9),
+                ),
+              ),
             ),
           ],
         ),
@@ -286,8 +322,8 @@ class _Bay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final line =
-        occupied ? const Color(0xFFF0B27A) : const Color(0xFF7FD8C8);
+    // Bay line color: orange = occupied, teal = available
+    final line = occupied ? const Color(0xFFF0B27A) : const Color(0xFF7FD8C8);
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(3),

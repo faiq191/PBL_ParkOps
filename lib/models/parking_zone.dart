@@ -19,12 +19,14 @@ class ParkingZone {
 
   int get occupiedSlots => totalSlots - availableSlots;
 
+  // Status: 'full' when no slots remain, 'tight' when <= 20% remain, otherwise 'ok'
   String get status {
     if (availableSlots == 0) return 'full';
     if (availableSlots <= (totalSlots * 0.2)) return 'tight';
     return 'ok';
   }
 
+  // Map a Firestore document to ParkingZone (defaults for missing fields)
   factory ParkingZone.fromFirestore(String id, Map<String, dynamic> data) {
     return ParkingZone(
       id: id,

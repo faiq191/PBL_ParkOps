@@ -7,6 +7,7 @@ class ParkOpsAppBar extends StatelessWidget implements PreferredSizeWidget {
   const ParkOpsAppBar({super.key, required this.section, required this.title});
 
   @override
+  // Required by PreferredSizeWidget: defines the app bar height (kToolbarHeight + 8)
   Size get preferredSize => const Size.fromHeight(kToolbarHeight + 8);
 
   @override

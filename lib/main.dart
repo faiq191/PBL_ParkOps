@@ -5,10 +5,13 @@ import 'firebase_options.dart';
 import 'pages/homepage.dart';
 
 Future<void> main() async {
+  // Ensure Flutter bindings are ready before using native plugins (Firebase) in async main
   WidgetsFlutterBinding.ensureInitialized();
+  // Initialize Firebase with the configuration for the current platform
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  // ProviderScope is required by Riverpod so all widgets can access providers
   runApp(const ProviderScope(child: MyApp()));
 }
 
