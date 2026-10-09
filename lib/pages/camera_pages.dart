@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../widgets/app_bottom_nav.dart';
-import '../widgets/dummy_bays.dart';
+import '../widgets/dummy_lots.dart';
 import '../widgets/parkops_app_bar.dart';
 import 'map_pages.dart';
 
@@ -23,46 +23,54 @@ class _CameraPagesState extends State<CameraPages> {
       backgroundColor: AppColors.paper,
       appBar:
           const ParkOpsAppBar(section: 'Camera', title: 'Parking Lot Camera'),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
-        children: [
-          _cameraCard(),
-          const SizedBox(height: 14),
-          Row(
+      body: ValueListenableBuilder<int>(
+        valueListenable: selectedLotIndex,
+        builder: (_, idx, __) {
+          final lot = dummyLots[idx];
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
             children: [
-              Expanded(
-                child: StatCard(
-                    value: '$dummyAvailable',
-                    label: 'Available',
-                    color: AppColors.teal),
+              const LotChips(),
+              const SizedBox(height: 12),
+              _cameraCard(lot),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: StatCard(
+                        value: '${lot.available}',
+                        label: 'Available',
+                        color: AppColors.teal),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: StatCard(
+                        value: '${lot.occupiedCount}',
+                        label: 'Occupied',
+                        color: AppColors.full),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: StatCard(
+                        value: '${lot.total}',
+                        label: 'Total bays',
+                        color: AppColors.navy),
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: StatCard(
-                    value: '$dummyOccupiedCount',
-                    label: 'Occupied',
-                    color: AppColors.full),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: StatCard(
-                    value: '$dummyTotal',
-                    label: 'Total bays',
-                    color: AppColors.navy),
-              ),
+              const SizedBox(height: 14),
+              _infoCard(),
+              const SizedBox(height: 16),
+              _mapButton(),
             ],
-          ),
-          const SizedBox(height: 14),
-          _infoCard(),
-          const SizedBox(height: 16),
-          _mapButton(),
-        ],
+          );
+        },
       ),
       bottomNavigationBar: const AppBottomNav(currentIndex: 1),
     );
   }
 
-  Widget _cameraCard() {
+  Widget _cameraCard(DummyLot lot) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -79,8 +87,8 @@ class _CameraPagesState extends State<CameraPages> {
                 const Icon(Icons.videocam_outlined,
                     color: AppColors.navy, size: 20),
                 const SizedBox(width: 8),
-                const Text('Camera 01',
-                    style: TextStyle(
+                Text('${lot.camera}  -  ${lot.name}',
+                    style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: AppColors.navy)),
@@ -93,7 +101,7 @@ class _CameraPagesState extends State<CameraPages> {
               ],
             ),
           ),
-          _DummyCameraFeed(showOverlay: _overlay),
+          _DummyCameraFeed(lot: lot, showOverlay: _overlay),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
             child: Row(
@@ -183,10 +191,10 @@ class _CameraPagesState extends State<CameraPages> {
 
 // Placeholder "feed": dark box with a 4x12 grid of bays.
 class _DummyCameraFeed extends StatelessWidget {
+  final DummyLot lot;
   final bool showOverlay;
-  const _DummyCameraFeed({required this.showOverlay});
+  const _DummyCameraFeed({required this.lot, required this.showOverlay});
 
-  static const _rows = 4;
   static const _cols = 12;
 
   @override
@@ -204,7 +212,7 @@ class _DummyCameraFeed extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    for (int r = 0; r < _rows; r++)
+                    for (int r = 0; r < (lot.total / _cols).ceil(); r++)
                       SizedBox(
                         height: 40,
                         child: Row(
@@ -212,7 +220,9 @@ class _DummyCameraFeed extends StatelessWidget {
                             for (int c = 0; c < _cols; c++) ...[
                               if (c > 0) const SizedBox(width: 3),
                               Expanded(
-                                child: _Bay(occupied: dummyOccupied[r * _cols + c]),
+                                child: r * _cols + c < lot.total
+                                    ? _Bay(occupied: lot.occupied[r * _cols + c])
+                                    : const SizedBox.shrink(),
                               ),
                             ],
                           ],
@@ -247,8 +257,8 @@ class _DummyCameraFeed extends StatelessWidget {
             Positioned(
               bottom: 10,
               left: 10,
-              child: _pill(const Text('CAM 01  /  TODAY 09:11:11',
-                  style: TextStyle(color: Colors.white, fontSize: 9))),
+              child: _pill(Text('${lot.camera}  /  TODAY 09:11:11',
+                  style: const TextStyle(color: Colors.white, fontSize: 9))),
             ),
           ],
         ),

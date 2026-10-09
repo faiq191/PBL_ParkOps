@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../widgets/app_bottom_nav.dart';
-import '../widgets/dummy_bays.dart';
+import '../widgets/dummy_lots.dart';
 import '../widgets/parkops_app_bar.dart';
 import 'camera_pages.dart';
 
@@ -10,7 +10,6 @@ import 'camera_pages.dart';
 class MapPages extends StatelessWidget {
   const MapPages({super.key});
 
-  static const _rows = 6;
   static const _cols = 8;
 
   @override
@@ -18,19 +17,24 @@ class MapPages extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.paper,
       appBar: const ParkOpsAppBar(section: 'Map', title: 'Find Your Space'),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
-        children: [
-          _mapCard(context),
-          const SizedBox(height: 14),
-          _cameraButton(context),
-        ],
+      body: ValueListenableBuilder<int>(
+        valueListenable: selectedLotIndex,
+        builder: (_, idx, __) => ListView(
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+          children: [
+            const LotChips(),
+            const SizedBox(height: 12),
+            _mapCard(context, dummyLots[idx]),
+            const SizedBox(height: 14),
+            _cameraButton(context),
+          ],
+        ),
       ),
       bottomNavigationBar: const AppBottomNav(currentIndex: 2),
     );
   }
 
-  Widget _mapCard(BuildContext context) {
+  Widget _mapCard(BuildContext context, DummyLot lot) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -42,18 +46,18 @@ class MapPages extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Graha Polinema',
-                        style: TextStyle(
+                    Text(lot.name,
+                        style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                             color: AppColors.navy)),
-                    Text('Main lot',
-                        style:
-                            TextStyle(fontSize: 11, color: AppColors.mist)),
+                    Text(lot.location,
+                        style: const TextStyle(
+                            fontSize: 11, color: AppColors.mist)),
                   ],
                 ),
               ),
@@ -61,14 +65,21 @@ class MapPages extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.tealSoft,
+                  color: lot.available == 0
+                      ? const Color(0xFFF8E3E0)
+                      : AppColors.tealSoft,
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: Text('$dummyAvailable spaces available',
-                    style: const TextStyle(
+                child: Text(
+                    lot.available == 0
+                        ? 'Full'
+                        : '${lot.available} spaces available',
+                    style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.teal)),
+                        color: lot.available == 0
+                            ? AppColors.full
+                            : AppColors.teal)),
               ),
             ],
           ),
@@ -83,16 +94,18 @@ class MapPages extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  for (int r = 0; r < _rows; r++)
+                  for (int r = 0; r < (lot.total / _cols).ceil(); r++)
                     Expanded(
                       child: Row(
                         children: [
                           for (int c = 0; c < _cols; c++)
                             Expanded(
-                              child: _MapBay(
-                                index: r * _cols + c,
-                                occupied: dummyOccupied[r * _cols + c],
-                              ),
+                              child: r * _cols + c < lot.total
+                                  ? _MapBay(
+                                      index: r * _cols + c,
+                                      occupied: lot.occupied[r * _cols + c],
+                                    )
+                                  : const SizedBox.shrink(),
                             ),
                         ],
                       ),
