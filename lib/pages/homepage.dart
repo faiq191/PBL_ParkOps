@@ -3,20 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/parking_zone.dart';
 import '../providers/parking_provider.dart';
+import '../theme/app_colors.dart';
+import '../widgets/app_bottom_nav.dart';
 import 'camera_pages.dart';
-
-class AppColors {
-  static const navy = Color(0xFF0F1B2D);
-  static const amber = Color(0xFFFDB833);
-  static const mist = Color(0xFFAEB9C7);
-  static const paper = Color(0xFFEDF1F5);
-  static const ok = Color(0xFF3FA796);
-  static const tight = Color(0xFFFDB833);
-  static const full = Color(0xFFD96C5B);
-  static const teal = Color(0xFF0E7C6B);
-  static const tealSoft = Color(0xFFE1F1EC);
-  static const line = Color(0xFFE6EAF0);
-}
+import 'map_pages.dart';
 
 class HomepagePages extends ConsumerWidget {
   const HomepagePages({super.key});
@@ -105,6 +95,9 @@ class HomepagePages extends ConsumerWidget {
                       icon: Icons.videocam_outlined,
                       title: 'Camera view',
                       subtitle: 'See delayed detection',
+                      onTap: () => Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (_) => const CameraPages()),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -113,6 +106,9 @@ class HomepagePages extends ConsumerWidget {
                       icon: Icons.map_outlined,
                       title: 'Parking map',
                       subtitle: 'Find an open bay',
+                      onTap: () => Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (_) => const MapPages()),
+                      ),
                     ),
                   ),
                 ],
@@ -133,7 +129,7 @@ class HomepagePages extends ConsumerWidget {
           );
         },
       ),
-      bottomNavigationBar: const _BottomNav(),
+      bottomNavigationBar: const AppBottomNav(currentIndex: 0),
     );
   }
 }
@@ -427,40 +423,6 @@ class _ExploreCard extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _BottomNav extends StatelessWidget {
-  const _BottomNav();
-
-  @override
-  Widget build(BuildContext context) {
-    return NavigationBar(
-      selectedIndex: 0,
-      height: 68,
-      backgroundColor: AppColors.paper,
-      onDestinationSelected: (i) {
-        if (i == 1) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const CameraPages()),
-          );
-        }
-        // TODO: 2=Map, 3=Info
-      },
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.home_outlined),
-          selectedIcon: Icon(Icons.home),
-          label: 'Home',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.videocam_outlined),
-          label: 'Camera',
-        ),
-        NavigationDestination(icon: Icon(Icons.map_outlined), label: 'Map'),
-        NavigationDestination(icon: Icon(Icons.info_outline), label: 'Info'),
-      ],
     );
   }
 }
