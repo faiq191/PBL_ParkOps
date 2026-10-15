@@ -5,6 +5,7 @@ import '../theme/app_colors.dart';
 import 'onboarding_pages.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/parkops_app_bar.dart';
+import 'admin_dashboard_page.dart';
 
 class InformationPages extends StatelessWidget {
   const InformationPages({super.key});
@@ -305,11 +306,9 @@ class InformationPages extends StatelessWidget {
                 const SizedBox(height: 12),
                 InkWell(
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Admin login has not been implemented yet.',
-                        ),
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const AdminDashboardPage(),
                       ),
                     );
                   },
