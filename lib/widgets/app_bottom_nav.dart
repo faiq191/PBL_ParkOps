@@ -1,33 +1,32 @@
 import 'package:flutter/material.dart';
-import '../pages/camera_pages.dart';
-import '../pages/homepage.dart' show HomepagePages;
-import '../pages/map_pages.dart';
-import '../pages/information_pages.dart';
+
+import '../routes.dart';
 import '../theme/app_colors.dart';
 
 /// Shared bottom bar. 0=Home, 1=Camera, 2=Map, 3=Info.
+/// DV-3 fix: navigates through named routes (routes.dart) instead of
+/// importing the page classes, so this widget no longer points outward.
 class AppBottomNav extends StatelessWidget {
   final int currentIndex;
   const AppBottomNav({super.key, required this.currentIndex});
 
   void _go(BuildContext context, int i) {
     if (i == currentIndex) return;
-    // Map tab index to a page; null means the page doesn't exist yet (Info)
-    final Widget? page = switch (i) {
-      0 => const HomepagePages(),
-      1 => const CameraPages(),
-      2 => const MapPages(),
-      3 => const InformationPages(),
+    // Map tab index to a route; null means the page doesn't exist yet
+    final String? route = switch (i) {
+      0 => Routes.home,
+      1 => Routes.camera,
+      2 => Routes.map,
+      3 => Routes.info,
       _ => null,
     };
-    if (page == null) {
+    if (route == null) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(const SnackBar(content: Text('Info page coming soon')));
       return;
     }
-    Navigator.of(context)
-        .pushReplacement(MaterialPageRoute(builder: (_) => page));
+    Navigator.of(context).pushReplacementNamed(route);
   }
 
   @override
