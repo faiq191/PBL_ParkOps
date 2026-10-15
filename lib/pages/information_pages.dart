@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../theme/app_colors.dart';
+import 'onboarding_pages.dart';
 import '../widgets/app_bottom_nav.dart';
 import '../widgets/parkops_app_bar.dart';
 
@@ -10,10 +13,7 @@ class InformationPages extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.paper,
-      appBar: const ParkOpsAppBar(
-        section: 'PARKOPS',
-        title: 'Information',
-      ),
+      appBar: const ParkOpsAppBar(section: 'PARKOPS', title: 'Information'),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
         children: [
@@ -154,11 +154,7 @@ class InformationPages extends StatelessWidget {
                       ),
                       child: const Row(
                         children: [
-                          Icon(
-                            Icons.circle,
-                            size: 7,
-                            color: AppColors.teal,
-                          ),
+                          Icon(Icons.circle, size: 7, color: AppColors.teal),
                           SizedBox(width: 6),
                           Text(
                             'Online',
@@ -247,18 +243,13 @@ class InformationPages extends StatelessWidget {
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text(
-                    'Contact Customer Service: 0812 2600 960',
-                  ),
+                  content: Text('Contact Customer Service: 0812 2600 960'),
                 ),
               );
             },
             borderRadius: BorderRadius.circular(14),
             child: const Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: 4,
-                vertical: 6,
-              ),
+              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
               child: Row(
                 children: [
                   Icon(
@@ -290,11 +281,7 @@ class InformationPages extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Icon(
-                    Icons.north_east,
-                    size: 19,
-                    color: Color(0xFF477AA5),
-                  ),
+                  Icon(Icons.north_east, size: 19, color: Color(0xFF477AA5)),
                 ],
               ),
             ),
@@ -339,10 +326,7 @@ class InformationPages extends StatelessWidget {
                         SizedBox(width: 12),
                         Text(
                           'Login as Admin',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColors.navy,
-                          ),
+                          style: TextStyle(fontSize: 13, color: AppColors.navy),
                         ),
                       ],
                     ),
@@ -351,6 +335,60 @@ class InformationPages extends StatelessWidget {
                 const SizedBox(height: 12),
                 const Divider(height: 1, color: AppColors.line),
               ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Replay walkthrough card
+          _InfoCard(
+            child: InkWell(
+              onTap: () async {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool(kOnboardingDoneKey, false);
+                if (!context.mounted) return;
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const OnboardingPages()),
+                );
+              },
+              borderRadius: BorderRadius.circular(14),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.replay_rounded,
+                      color: Color(0xFF477AA5),
+                      size: 25,
+                    ),
+                    SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Replay walkthrough',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.navy,
+                            ),
+                          ),
+                          SizedBox(height: 5),
+                          Text(
+                            'See the introduction and permissions again',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF8493A3),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.north_east, size: 19, color: Color(0xFF477AA5)),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
