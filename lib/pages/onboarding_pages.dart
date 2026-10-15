@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+ 
 import '../theme/app_colors.dart';
 import 'homepage.dart';
-
+import 'register_page.dart';
+ 
 /// Key used in SharedPreferences so the walkthrough is shown only once
 /// (on first launch / first install).
 const String kOnboardingDoneKey = 'onboarding_done';
-
+ 
 /// Quick showcase shown the first time the app is opened.
 ///
 /// Page 1: Welcome — what ParkOps is.
@@ -15,15 +16,15 @@ const String kOnboardingDoneKey = 'onboarding_done';
 /// Page 3: Create account — with "Skip" and "Register" actions.
 class OnboardingPages extends StatefulWidget {
   const OnboardingPages({super.key});
-
+ 
   @override
   State<OnboardingPages> createState() => _OnboardingPagesState();
 }
-
+ 
 class _OnboardingPagesState extends State<OnboardingPages> {
   final PageController _controller = PageController();
   int _currentPage = 0;
-
+ 
   static const List<_OnboardingData> _pages = [
     _OnboardingData(
       icon: Icons.local_parking_rounded,
@@ -52,15 +53,15 @@ class _OnboardingPagesState extends State<OnboardingPages> {
           'receive instant updates on your parking status.',
     ),
   ];
-
+ 
   /// Whether the user has accepted the required permissions (UI-only demo).
   bool _permissionGranted = false;
-
+ 
   /// UI-only: no real permission request, just toggles the demo state.
   void _requestPermissions() {
     setState(() => _permissionGranted = true);
   }
-
+ 
   /// "Grant Permission" button + live status, shown on the Permissions slide.
   Widget _buildPermissionAction() {
     return Column(
@@ -131,13 +132,13 @@ class _OnboardingPagesState extends State<OnboardingPages> {
       ],
     );
   }
-
+ 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
-
+ 
   Future<void> _finish({bool goHome = true}) async {
     // Persist a flag so the walkthrough does not appear again.
     final prefs = await SharedPreferences.getInstance();
@@ -147,7 +148,7 @@ class _OnboardingPagesState extends State<OnboardingPages> {
       context,
     ).pushReplacement(MaterialPageRoute(builder: (_) => const HomepagePages()));
   }
-
+ 
   void _next() {
     if (_currentPage < _pages.length - 1) {
       _controller.nextPage(
@@ -158,11 +159,11 @@ class _OnboardingPagesState extends State<OnboardingPages> {
       _finish();
     }
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     final isLast = _currentPage == _pages.length - 1;
-
+ 
     return Scaffold(
       backgroundColor: AppColors.paper,
       body: SafeArea(
@@ -228,7 +229,7 @@ class _OnboardingPagesState extends State<OnboardingPages> {
       ),
     );
   }
-
+ 
   Widget _buildNextButton() {
     return SizedBox(
       width: double.infinity,
@@ -250,7 +251,7 @@ class _OnboardingPagesState extends State<OnboardingPages> {
       ),
     );
   }
-
+ 
   Widget _buildLastPageActions() {
     return Row(
       children: [
@@ -281,9 +282,9 @@ class _OnboardingPagesState extends State<OnboardingPages> {
             height: 52,
             child: ElevatedButton(
               onPressed: () {
-                // TODO: navigate to the register page once it exists.
-                // For now, register lands in the app like skip.
-                _finish();
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const RegisterPage()),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.amber,
@@ -304,7 +305,7 @@ class _OnboardingPagesState extends State<OnboardingPages> {
     );
   }
 }
-
+ 
 /// Immutable data for a single onboarding slide.
 class _OnboardingData {
   final IconData icon;
@@ -316,11 +317,11 @@ class _OnboardingData {
     required this.description,
   });
 }
-
+ 
 class _OnboardingSlide extends StatelessWidget {
   final _OnboardingData data;
   const _OnboardingSlide({required this.data});
-
+ 
   @override
   Widget build(BuildContext context) {
     return Padding(
