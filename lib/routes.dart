@@ -6,7 +6,6 @@ import 'features/auth/presentation/pages/register_page.dart';
 import 'features/information/presentation/pages/information_pages.dart';
 import 'features/onboarding/presentation/pages/onboarding_pages.dart';
 import 'features/parking/presentation/pages/camera_pages.dart';
-import 'features/parking/presentation/pages/homepage.dart';
 import 'features/parking/presentation/pages/map_pages.dart';
 
 /// Central route table (DV-3 fix): this is the only file that imports pages.
@@ -24,7 +23,6 @@ class Routes {
   static const register = '/register';
 
   static final Map<String, WidgetBuilder> all = {
-    home: (_) => const HomepagePages(),
     onboarding: (_) => const OnboardingPages(),
     camera: (_) => const CameraPages(),
     map: (_) => const MapPages(),
