@@ -9,7 +9,6 @@ import '../../../../widgets/parkops_app_bar.dart';
 import '../../domain/entities/parking_slot.dart';
 import '../../domain/entities/parking_zone.dart';
 import '../providers/parking_providers.dart';
-import '../widgets/lot_chips.dart';
 import '../widgets/placeholder_bays.dart';
 
 /// UI only: bay layout and counts are placeholders.
@@ -29,7 +28,9 @@ class MapPages extends ConsumerWidget {
         loading: () =>
             const Scaffold(body: Center(child: CircularProgressIndicator())),
         error: (e, _) => Center(
-          child: Text(e is Failure ? e.message : 'Could not load parking zones'),
+          child: Text(
+            e is Failure ? e.message : 'Could not load parking zones',
+          ),
         ),
         // Rebuild whenever the selected zone changes (DV-3: selection is
         // Riverpod state in parking_providers.dart)
@@ -40,15 +41,14 @@ class MapPages extends ConsumerWidget {
           }
           // Real per-bay occupancy when the zone's 'slots' subcollection has
           // documents; otherwise the placeholder pattern from the zone counts.
-          final slots = ref.watch(slotsStreamProvider(zone.id)).value ??
+          final slots =
+              ref.watch(slotsStreamProvider(zone.id)).value ??
               const <ParkingSlot>[];
           final occupied = baysFor(zone, slots);
           return ListView(
             padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
             children: [
-              const LotChips(),
-              const SizedBox(height: 12),
-              _mapCard(context, zone, occupied),
+              _mapCard(context, ref, zone, occupied),
               const SizedBox(height: 14),
               _cameraButton(context),
             ],
@@ -59,7 +59,14 @@ class MapPages extends ConsumerWidget {
     );
   }
 
-  Widget _mapCard(BuildContext context, ParkingZone zone, List<bool> occupied) {
+  Widget _mapCard(
+    BuildContext context,
+    WidgetRef ref,
+    ParkingZone zone,
+    List<bool> occupied,
+  ) {
+    // Lots listed in the map card dropdown
+    final zones = ref.watch(zonesListProvider);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -75,20 +82,56 @@ class MapPages extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(zone.name,
-                        style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.navy)),
-                    Text(zone.location,
-                        style: const TextStyle(
-                            fontSize: 11, color: AppColors.mist)),
+                    // Lot picker: switching lots swaps the bay grid and the
+                    // counts to the chosen lot.
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: zone.id,
+                        isDense: true,
+                        borderRadius: BorderRadius.circular(10),
+                        icon: const Icon(
+                          Icons.keyboard_arrow_down,
+                          color: AppColors.navy,
+                        ),
+                        items: [
+                          for (final z in zones)
+                            DropdownMenuItem(
+                              value: z.id,
+                              child: Text(
+                                z.name,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.navy,
+                                ),
+                              ),
+                            ),
+                        ],
+                        onChanged: (id) {
+                          if (id != null) {
+                            ref
+                                .read(selectedZoneIdProvider.notifier)
+                                .select(id);
+                          }
+                        },
+                      ),
+                    ),
+                    Text(
+                      zone.location,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.mist,
+                      ),
+                    ),
                   ],
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: zone.availableSlots == 0
                       ? const Color(0xFFF8E3E0)
@@ -96,15 +139,17 @@ class MapPages extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                    zone.availableSlots == 0
-                        ? 'Full'
-                        : '${zone.availableSlots} spaces available',
-                    style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: zone.availableSlots == 0
-                            ? AppColors.full
-                            : AppColors.teal)),
+                  zone.availableSlots == 0
+                      ? 'Full'
+                      : '${zone.availableSlots} spaces available',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: zone.availableSlots == 0
+                        ? AppColors.full
+                        : AppColors.teal,
+                  ),
+                ),
               ),
             ],
           ),
@@ -117,11 +162,14 @@ class MapPages extends ConsumerWidget {
                   const Icon(Icons.near_me, size: 14, color: AppColors.teal),
                   const SizedBox(width: 6),
                   // First free bay = first index holding false; +1 to display as 1-based
-                  Text('First free bay: ${occupied.indexOf(false) + 1}',
-                      style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.teal)),
+                  Text(
+                    'First free bay: ${occupied.indexOf(false) + 1}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.teal,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -178,14 +226,17 @@ class MapPages extends ConsumerWidget {
           backgroundColor: AppColors.navy,
           foregroundColor: Colors.white,
           elevation: 0,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
         child: const Row(
           children: [
             SizedBox(width: 6),
-            Text('View this area on camera',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+            Text(
+              'View this area on camera',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            ),
             Spacer(),
             Icon(Icons.videocam_outlined, size: 20),
             SizedBox(width: 6),
@@ -206,11 +257,14 @@ class _MapBay extends StatelessWidget {
     return GestureDetector(
       onTap: () => ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(
-          duration: const Duration(seconds: 2),
-          content: Text(
-              'Bay ${index + 1}: ${occupied ? 'occupied' : 'available'}'),
-        )),
+        ..showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 2),
+            content: Text(
+              'Bay ${index + 1}: ${occupied ? 'occupied' : 'available'}',
+            ),
+          ),
+        ),
       child: Padding(
         padding: const EdgeInsets.all(1.5),
         child: DecoratedBox(
@@ -222,11 +276,14 @@ class _MapBay extends StatelessWidget {
           child: Center(
             child: occupied
                 ? null
-                : Text('${index + 1}',
+                : Text(
+                    '${index + 1}',
                     style: const TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white)),
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
           ),
         ),
       ),
@@ -253,8 +310,10 @@ class _LegendDot extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 6),
-        Text(label,
-            style: const TextStyle(fontSize: 11, color: AppColors.navy)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: AppColors.navy),
+        ),
       ],
     );
   }

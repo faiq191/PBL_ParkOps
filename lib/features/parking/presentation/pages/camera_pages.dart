@@ -37,7 +37,9 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
         loading: () =>
             const Scaffold(body: Center(child: CircularProgressIndicator())),
         error: (e, _) => Center(
-          child: Text(e is Failure ? e.message : 'Could not load parking zones'),
+          child: Text(
+            e is Failure ? e.message : 'Could not load parking zones',
+          ),
         ),
         // Rebuild whenever the selected zone changes (DV-3: selection is
         // Riverpod state in parking_providers.dart)
@@ -60,8 +62,6 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
       children: [
-        const LotChips(),
-        const SizedBox(height: 12),
         _cameraCard(zone, occupied),
         const SizedBox(height: 14),
         Row(
@@ -100,6 +100,8 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
   }
 
   Widget _cameraCard(ParkingZone zone, List<bool> occupied) {
+    // Lots listed in the camera header dropdown
+    final zones = ref.watch(zonesListProvider);
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -119,20 +121,40 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
                   size: 20,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  '${zone.cameraImageUrl}  -  ${zone.name}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.navy,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.keyboard_arrow_down,
-                    color: AppColors.navy,
+                // Lot picker: switching lots swaps the camera feed and the
+                // counts to the chosen lot.
+                Expanded(
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: zone.id,
+                      isExpanded: true,
+                      isDense: true,
+                      borderRadius: BorderRadius.circular(10),
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down,
+                        color: AppColors.navy,
+                      ),
+                      items: [
+                        for (final z in zones)
+                          DropdownMenuItem(
+                            value: z.id,
+                            child: Text(
+                              '${z.cameraImageUrl}  -  ${z.name}',
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.navy,
+                              ),
+                            ),
+                          ),
+                      ],
+                      onChanged: (id) {
+                        if (id != null) {
+                          ref.read(selectedZoneIdProvider.notifier).select(id);
+                        }
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -212,8 +234,7 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
       width: double.infinity,
       height: 52,
       child: ElevatedButton(
-        onPressed: () =>
-            Navigator.of(context).pushReplacementNamed(Routes.map),
+        onPressed: () => Navigator.of(context).pushReplacementNamed(Routes.map),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.navy,
           foregroundColor: Colors.white,
@@ -280,9 +301,7 @@ class _DummyCameraFeed extends StatelessWidget {
                               if (c > 0) const SizedBox(width: 3),
                               Expanded(
                                 child: r * _cols + c < occupied.length
-                                    ? _Bay(
-                                        occupied: occupied[r * _cols + c],
-                                      )
+                                    ? _Bay(occupied: occupied[r * _cols + c])
                                     : const SizedBox.shrink(),
                               ),
                             ],
