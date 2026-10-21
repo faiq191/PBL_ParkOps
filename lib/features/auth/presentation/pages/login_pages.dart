@@ -70,6 +70,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     _showSoon(error ?? 'If that email is registered, a reset link was sent.');
   }
 
+  Future<void> _social(Future<String?> Function() action) async {
+    FocusScope.of(context).unfocus();
+    final error = await action();
+    if (!mounted) return;
+    if (error != null) {
+      _showSoon(error);
+      return;
+    }
+    await ref.read(onboardingRepositoryProvider).setDone(done: true);
+    if (!mounted) return;
+    Navigator.of(context).pushReplacementNamed(Routes.home);
+  }
+
   void _showSoon(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -202,28 +215,34 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 children: [
                   Expanded(
                     child: _socialButton(
-                      icon: Icons.g_mobiledata_rounded,
-                      color: const Color(0xFFDB4437),
-                      size: 36,
-                      label: 'Google',
+                      onTap: loading
+                          ? null
+                          : () => _social(ref
+                              .read(authControllerProvider.notifier)
+                              .signInWithGoogle),
+                      child: const Icon(
+                        Icons.g_mobiledata_rounded,
+                        size: 36,
+                        color: Color(0xFFDB4437),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _socialButton(
-                      icon: Icons.facebook,
-                      color: const Color(0xFF1877F2),
-                      size: 26,
-                      label: 'Facebook',
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _socialButton(
-                      icon: Icons.apple,
-                      color: Colors.black,
-                      size: 28,
-                      label: 'Apple',
+                      onTap: loading
+                          ? null
+                          : () => _social(ref
+                              .read(authControllerProvider.notifier)
+                              .signInWithYahoo),
+                      child: const Text(
+                        'Y!',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF6001D2),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -294,20 +313,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Widget _socialButton({
-    required IconData icon,
-    required Color color,
-    required double size,
-    required String label,
+    required Widget child,
+    required VoidCallback? onTap,
   }) {
     return Material(
       color: const Color(0xFFF5F6F8),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => _showSoon('$label login is not available yet.'),
+        onTap: onTap,
         child: SizedBox(
           height: 52,
-          child: Center(child: Icon(icon, size: size, color: color)),
+          child: Center(child: child),
         ),
       ),
     );

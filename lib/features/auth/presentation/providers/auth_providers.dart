@@ -36,6 +36,18 @@ class AuthController extends AsyncNotifier<void> {
     });
   }
 
+  Future<String?> signInWithGoogle() {
+    return _run(() async {
+      await ref.read(authRepositoryProvider).signInWithGoogle();
+    });
+  }
+
+  Future<String?> signInWithYahoo() {
+    return _run(() async {
+      await ref.read(authRepositoryProvider).signInWithYahoo();
+    });
+  }
+
   Future<String?> sendPasswordReset(String email) {
     return _run(() async {
       await ref.read(authRepositoryProvider).sendPasswordReset(email);
