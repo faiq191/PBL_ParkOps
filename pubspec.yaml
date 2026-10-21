@@ -1,4 +1,4 @@
-﻿name: pbl_parkops
+name: pbl_parkops
 description: "A new Flutter project."
 publish_to: "none"
 version: 1.0.0+1
@@ -14,6 +14,7 @@ dependencies:
   flutter_riverpod: ^3.4.3
   firebase_core: ^4.15.0
   shared_preferences: ^2.3.2
+  firebase_auth: ^6.7.0
 
 dev_dependencies:
   flutter_test:

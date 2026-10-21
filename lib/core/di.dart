@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../features/auth/data/auth_repository_impl.dart';
+import '../features/auth/domain/repositories/auth_repository.dart';
 import '../features/onboarding/data/onboarding_repository_impl.dart';
 import '../features/onboarding/domain/repositories/onboarding_repository.dart';
 import '../features/parking/data/repositories/parking_repository_impl.dart';
@@ -17,4 +20,11 @@ final onboardingRepositoryProvider = Provider<OnboardingRepository>((ref) {
 
 final parkingRepositoryProvider = Provider<ParkingRepository>((ref) {
   return ParkingRepositoryImpl(firestore: FirebaseFirestore.instance);
+});
+
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  return AuthRepositoryImpl(
+    auth: FirebaseAuth.instance,
+    firestore: FirebaseFirestore.instance,
+  );
 });
