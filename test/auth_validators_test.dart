@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-
-import '../lib/features/auth/domain/auth_validators.dart';
+import 'package:pbl_parkops/features/auth/domain/auth_validators.dart';
 
 void main() {
   group('username', () {
@@ -51,7 +50,8 @@ void main() {
   group('confirm password', () {
     test('empty and mismatch are rejected', () {
       expect(AuthValidators.confirmPassword('', 'Passw0rd!'), isNotNull);
-      expect(AuthValidators.confirmPassword('Passw0rd?', 'Passw0rd!'), isNotNull);
+      expect(
+          AuthValidators.confirmPassword('Passw0rd?', 'Passw0rd!'), isNotNull);
     });
     test('matching passes', () {
       expect(AuthValidators.confirmPassword('Passw0rd!', 'Passw0rd!'), isNull);

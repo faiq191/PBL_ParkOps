@@ -5,6 +5,7 @@ import '../../../core/failures.dart';
 import '../domain/entities/app_user.dart';
 import '../domain/repositories/auth_repository.dart';
 
+// ignore_for_file: prefer_initializing_formals
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
     required FirebaseAuth auth,
