@@ -4,11 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/di.dart';
 import '../../../../routes.dart';
 import '../../../../theme/app_colors.dart';
+import '../../domain/auth_validators.dart';
+import '../providers/auth_providers.dart';
 
-/// Login page. There is no REST/Firebase-Auth backend yet, so logging in
-/// only marks onboarding as done through OnboardingRepository (DV-1 fix: no
-/// storage plugin call in the widget; a real AuthRepository is added when
-/// a backend exists — see the refactoring notes in Refactoring_Assignment.md).
+/// Login page. Signs in with Firebase Auth through AuthRepository, then marks
+/// onboarding as done and opens the homepage.
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
@@ -17,21 +17,67 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscure = true;
+  String? _emailError;
+  String? _passwordError;
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _login() async {
     FocusScope.of(context).unfocus();
-    // No backend yet: credentials are collected but not verified; logging in
-    // just persists the walkthrough flag so it never shows again.
+    final emailError = AuthValidators.email(_emailController.text);
+    final passwordError =
+        AuthValidators.loginPassword(_passwordController.text);
+    setState(() {
+      _emailError = emailError;
+      _passwordError = passwordError;
+    });
+    if (emailError != null || passwordError != null) return;
+
+    final error = await ref.read(authControllerProvider.notifier).signIn(
+          email: _emailController.text,
+          password: _passwordController.text,
+        );
+    if (!mounted) return;
+    if (error != null) {
+      _showSoon(error);
+      return;
+    }
+    await ref.read(onboardingRepositoryProvider).setDone(done: true);
+    if (!mounted) return;
+    Navigator.of(context).pushReplacementNamed(Routes.home);
+  }
+
+  Future<void> _forgotPassword() async {
+    FocusScope.of(context).unfocus();
+    final emailError = AuthValidators.email(_emailController.text);
+    if (emailError != null) {
+      setState(() => _emailError = emailError);
+      _showSoon('Enter your email above to reset your password.');
+      return;
+    }
+    final error = await ref
+        .read(authControllerProvider.notifier)
+        .sendPasswordReset(_emailController.text);
+    if (!mounted) return;
+    _showSoon(error ?? 'If that email is registered, a reset link was sent.');
+  }
+
+  Future<void> _social(Future<String?> Function() action) async {
+    FocusScope.of(context).unfocus();
+    final error = await action();
+    if (!mounted) return;
+    if (error != null) {
+      _showSoon(error);
+      return;
+    }
     await ref.read(onboardingRepositoryProvider).setDone(done: true);
     if (!mounted) return;
     Navigator.of(context).pushReplacementNamed(Routes.home);
@@ -45,6 +91,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final loading = ref.watch(authControllerProvider).isLoading;
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -76,9 +123,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ),
               const SizedBox(height: 44),
               _field(
-                controller: _usernameController,
-                hint: 'Username',
-                icon: Icons.person_outline_rounded,
+                controller: _emailController,
+                hint: 'Email',
+                icon: Icons.mail_outline_rounded,
+                keyboardType: TextInputType.emailAddress,
+                errorText: _emailError,
               ),
               const SizedBox(height: 14),
               _field(
@@ -86,6 +135,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 hint: 'Password',
                 icon: Icons.lock_outline_rounded,
                 obscure: _obscure,
+                errorText: _passwordError,
                 suffix: IconButton(
                   onPressed: () => setState(() => _obscure = !_obscure),
                   icon: Icon(
@@ -100,8 +150,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () =>
-                      _showSoon('Password reset is not available yet.'),
+                  onPressed: loading ? null : _forgotPassword,
                   child: const Text(
                     'Forgot password?',
                     style: TextStyle(
@@ -117,7 +166,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: _login,
+                  onPressed: loading ? null : _login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.navy,
                     foregroundColor: Colors.white,
@@ -126,11 +175,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text(
-                    'Login',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                  ),
+                  child: loading
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Login',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
                 ),
               ),
               const SizedBox(height: 36),
@@ -157,28 +215,34 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 children: [
                   Expanded(
                     child: _socialButton(
-                      icon: Icons.g_mobiledata_rounded,
-                      color: const Color(0xFFDB4437),
-                      size: 36,
-                      label: 'Google',
+                      onTap: loading
+                          ? null
+                          : () => _social(ref
+                              .read(authControllerProvider.notifier)
+                              .signInWithGoogle),
+                      child: const Icon(
+                        Icons.g_mobiledata_rounded,
+                        size: 36,
+                        color: Color(0xFFDB4437),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _socialButton(
-                      icon: Icons.facebook,
-                      color: const Color(0xFF1877F2),
-                      size: 26,
-                      label: 'Facebook',
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _socialButton(
-                      icon: Icons.apple,
-                      color: Colors.black,
-                      size: 28,
-                      label: 'Apple',
+                      onTap: loading
+                          ? null
+                          : () => _social(ref
+                              .read(authControllerProvider.notifier)
+                              .signInWithYahoo),
+                      child: const Text(
+                        'Y!',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF6001D2),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -219,12 +283,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     required IconData icon,
     bool obscure = false,
     Widget? suffix,
+    TextInputType? keyboardType,
+    String? errorText,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscure,
+      keyboardType: keyboardType,
       style: const TextStyle(fontSize: 14, color: AppColors.navy),
       decoration: InputDecoration(
+        errorText: errorText,
         hintText: hint,
         hintStyle: const TextStyle(fontSize: 14, color: AppColors.mist),
         prefixIcon: Icon(icon, size: 22, color: AppColors.navy),
@@ -245,20 +313,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Widget _socialButton({
-    required IconData icon,
-    required Color color,
-    required double size,
-    required String label,
+    required Widget child,
+    required VoidCallback? onTap,
   }) {
     return Material(
       color: const Color(0xFFF5F6F8),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => _showSoon('$label login is not available yet.'),
+        onTap: onTap,
         child: SizedBox(
           height: 52,
-          child: Center(child: Icon(icon, size: size, color: color)),
+          child: Center(child: child),
         ),
       ),
     );
