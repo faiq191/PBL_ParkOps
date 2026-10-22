@@ -8,6 +8,7 @@ import 'features/onboarding/presentation/pages/onboarding_pages.dart';
 import 'features/parking/presentation/pages/camera_pages.dart';
 import 'features/parking/presentation/pages/map_pages.dart';
 import 'features/settings/presentation/pages/settings_page.dart';
+import 'features/profile/presentation/pages/profile_page.dart';
 
 /// Central route table (DV-3 fix): this is the only file that imports pages.
 /// Pages navigate through these names instead of importing each other, which
@@ -23,6 +24,7 @@ class Routes {
   static const login = '/login';
   static const register = '/register';
   static const settings = '/settings';
+  static const profile = '/profile';
 
   static final Map<String, WidgetBuilder> all = {
     onboarding: (_) => const OnboardingPages(),
@@ -33,5 +35,6 @@ class Routes {
     login: (_) => const LoginPage(),
     register: (_) => const RegisterPage(),
     settings: (_) => const SettingsPage(),
+    profile: (_) => const ProfilePage(),
   };
 }
