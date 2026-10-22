@@ -41,8 +41,8 @@ void main() {
     expect(find.text('Camera preferences'), findsOneWidget);
     expect(find.text('Detection overlay'), findsOneWidget);
     expect(find.text('Favorite lot'), findsOneWidget);
-    expect(find.text('Daily notification'), findsNothing);
-    expect(find.text('Send daily summary'), findsNothing);
+    expect(find.text('Daily notification'), findsOneWidget);
+    expect(find.text('Send daily summary'), findsOneWidget);
     expect(find.text('Display'), findsOneWidget);
     expect(find.text('Theme preference'), findsOneWidget);
     expect(find.text('Logout'), findsOneWidget);

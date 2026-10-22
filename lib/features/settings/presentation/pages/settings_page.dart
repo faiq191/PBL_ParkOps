@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers.dart';
@@ -7,6 +8,7 @@ import '../../../../features/parking/data/seed_zones.dart';
 import '../../../../routes.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/parkops_app_bar.dart';
+import '../../data/parking_notification_service.dart';
 import '../../data/settings_preference_keys.dart';
 import '../providers/settings_providers.dart';
 
@@ -19,7 +21,10 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _favoriteLotId = seedZones.first.id;
+  bool _dailyNotificationEnabled = false;
+  int _notificationMinuteOfDay = 8 * 60;
   bool _darkModeSelected = false;
+  bool _savingNotification = false;
 
   @override
   void initState() {
@@ -31,9 +36,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (!seedZones.any((zone) => zone.id == _favoriteLotId)) {
       _favoriteLotId = seedZones.first.id;
     }
+    _dailyNotificationEnabled =
+        preferences.getBool(SettingsPreferenceKeys.dailyNotificationEnabled) ??
+        false;
+    _notificationMinuteOfDay =
+        preferences.getInt(SettingsPreferenceKeys.notificationMinuteOfDay) ??
+        8 * 60;
     _darkModeSelected =
         preferences.getBool(SettingsPreferenceKeys.darkModeSelected) ?? false;
   }
+
+  TimeOfDay get _notificationTime => TimeOfDay(
+    hour: _notificationMinuteOfDay ~/ 60,
+    minute: _notificationMinuteOfDay % 60,
+  );
 
   Future<void> _setCameraOverlay(bool enabled) async {
     final saved = await ref
@@ -48,6 +64,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Future<void> _setFavoriteLot(String? lotId) async {
     if (lotId == null) return;
+    if (_dailyNotificationEnabled) {
+      await _saveNotificationSettings(
+        favoriteLotId: lotId,
+        minuteOfDay: _notificationMinuteOfDay,
+      );
+      return;
+    }
     final saved = await ref
         .read(sharedPreferencesProvider)
         .setString(SettingsPreferenceKeys.favoriteLotId, lotId);
@@ -57,6 +80,122 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       return;
     }
     setState(() => _favoriteLotId = lotId);
+  }
+
+  Future<void> _chooseNotificationTime() async {
+    final selected = await showTimePicker(
+      context: context,
+      initialTime: _notificationTime,
+    );
+    if (selected == null || !mounted) return;
+    final minuteOfDay = selected.hour * 60 + selected.minute;
+    if (_dailyNotificationEnabled) {
+      await _saveNotificationSettings(
+        favoriteLotId: _favoriteLotId,
+        minuteOfDay: minuteOfDay,
+      );
+      return;
+    }
+    final saved = await ref
+        .read(sharedPreferencesProvider)
+        .setInt(SettingsPreferenceKeys.notificationMinuteOfDay, minuteOfDay);
+    if (!mounted) return;
+    if (!saved) {
+      _showMessage('Could not save the notification time.');
+      return;
+    }
+    setState(() => _notificationMinuteOfDay = minuteOfDay);
+  }
+
+  Future<void> _toggleDailyNotification(bool enabled) async {
+    if (!enabled) {
+      setState(() => _savingNotification = true);
+      try {
+        await ParkingNotificationService.instance.cancelDailySummary();
+        if (!mounted) return;
+        final saved = await ref
+            .read(sharedPreferencesProvider)
+            .setBool(SettingsPreferenceKeys.dailyNotificationEnabled, false);
+        if (!saved) {
+          _showMessage('Could not save the notification preference.');
+          return;
+        }
+        setState(() => _dailyNotificationEnabled = false);
+      } on PlatformException catch (error) {
+        _showMessage('Could not cancel the notification: ${error.message}');
+      } on UnsupportedError catch (error) {
+        _showMessage(error.message ?? 'Notifications are not supported here.');
+      } on StateError catch (error) {
+        _showMessage(error.message);
+      } finally {
+        if (mounted) setState(() => _savingNotification = false);
+      }
+      return;
+    }
+
+    await _saveNotificationSettings(
+      favoriteLotId: _favoriteLotId,
+      minuteOfDay: _notificationMinuteOfDay,
+      enableAfterSave: true,
+    );
+  }
+
+  Future<void> _saveNotificationSettings({
+    required String favoriteLotId,
+    required int minuteOfDay,
+    bool enableAfterSave = false,
+  }) async {
+    setState(() => _savingNotification = true);
+    try {
+      final notificationService = ParkingNotificationService.instance;
+      if (enableAfterSave) {
+        final permitted = await notificationService.requestPermission();
+        if (!mounted) return;
+        if (!permitted) {
+          _showMessage(
+            'Allow notifications and scheduled alarms in device settings to receive daily updates.',
+          );
+          return;
+        }
+      }
+      await notificationService.scheduleDailySummary(
+        favoriteLotId: favoriteLotId,
+        minuteOfDay: minuteOfDay,
+      );
+      if (!mounted) return;
+      final preferences = ref.read(sharedPreferencesProvider);
+      final favoriteSaved = await preferences.setString(
+        SettingsPreferenceKeys.favoriteLotId,
+        favoriteLotId,
+      );
+      final timeSaved = await preferences.setInt(
+        SettingsPreferenceKeys.notificationMinuteOfDay,
+        minuteOfDay,
+      );
+      final enabledSaved = enableAfterSave
+          ? await preferences.setBool(
+              SettingsPreferenceKeys.dailyNotificationEnabled,
+              true,
+            )
+          : true;
+      if (!favoriteSaved || !timeSaved || !enabledSaved) {
+        _showMessage('Could not save all notification preferences.');
+        return;
+      }
+      setState(() {
+        _favoriteLotId = favoriteLotId;
+        _notificationMinuteOfDay = minuteOfDay;
+        _dailyNotificationEnabled = true;
+      });
+    } on PlatformException catch (error) {
+      _showMessage('Could not schedule the notification: ${error.message}');
+    } on UnsupportedError catch (error) {
+      _showMessage(error.message ?? 'Notifications are not supported here.');
+    } on StateError catch (error) {
+      _showMessage(error.message);
+    } finally {
+      if (mounted) setState(() => _savingNotification = false);
+    }
   }
 
   Future<void> _setDarkMode(bool isDark) async {
@@ -149,6 +288,37 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ],
                 onChanged: _setFavoriteLot,
               ),
+            ),
+            const Divider(height: 1, color: AppColors.line),
+            ListTile(
+              key: const ValueKey('notification-time-setting'),
+              contentPadding: EdgeInsets.zero,
+              title: const Text(
+                'Daily notification',
+                style: TextStyle(
+                  color: AppColors.navy,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: const Text('Local demo availability for now'),
+              trailing: TextButton(
+                onPressed: _savingNotification ? null : _chooseNotificationTime,
+                child: Text(_notificationTime.format(context)),
+              ),
+            ),
+            SwitchListTile(
+              key: const ValueKey('daily-notification-setting'),
+              contentPadding: EdgeInsets.zero,
+              title: const Text(
+                'Send daily summary',
+                style: TextStyle(
+                  color: AppColors.navy,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              value: _dailyNotificationEnabled,
+              activeTrackColor: AppColors.navy,
+              onChanged: _savingNotification ? null : _toggleDailyNotification,
             ),
           ]),
           const SizedBox(height: 22),
