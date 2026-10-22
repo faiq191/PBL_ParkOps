@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../routes.dart';
 import '../theme/app_colors.dart';
 
 class ParkOpsAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -44,6 +45,11 @@ class ParkOpsAppBar extends StatelessWidget implements PreferredSizeWidget {
           offset: const Offset(-12, 8),
           color: AppColors.paper,
           surfaceTintColor: AppColors.paper,
+          onSelected: (value) {
+            if (value == 'settings') {
+              Navigator.of(context).pushNamed(Routes.settings);
+            }
+          },
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
