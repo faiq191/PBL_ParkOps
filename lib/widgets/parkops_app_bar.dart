@@ -23,6 +23,7 @@ class ParkOpsAppBar extends ConsumerWidget implements PreferredSizeWidget {
         user.avatarPath != null && File(user.avatarPath!).existsSync();
 
     return AppBar(
+      automaticallyImplyLeading: false,
       backgroundColor: AppColors.paper,
       elevation: 0,
       scrolledUnderElevation: 0,
