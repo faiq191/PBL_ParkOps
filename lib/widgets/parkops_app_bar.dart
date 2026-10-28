@@ -15,6 +15,7 @@ class ParkOpsAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      automaticallyImplyLeading: false,
       backgroundColor: AppColors.paper,
       elevation: 0,
       scrolledUnderElevation: 0,
