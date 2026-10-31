@@ -1,4 +1,4 @@
-name: pbl_parkops
+﻿name: pbl_parkops
 description: "A new Flutter project."
 publish_to: "none"
 version: 1.0.0+1
@@ -18,8 +18,9 @@ dependencies:
   flutter_local_notifications: ^22.3.2
   flutter_timezone: ^5.1.1
   timezone: ^0.11.2
-  image_picker: ^1.2.4
   path_provider: ^2.1.6
+  image_picker: ^1.2.4
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
