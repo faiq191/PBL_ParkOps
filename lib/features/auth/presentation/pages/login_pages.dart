@@ -211,41 +211,31 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ],
               ),
               const SizedBox(height: 22),
-              Row(
-                children: [
-                  Expanded(
-                    child: _socialButton(
-                      onTap: loading
-                          ? null
-                          : () => _social(ref
-                              .read(authControllerProvider.notifier)
-                              .signInWithGoogle),
-                      child: const Icon(
-                        Icons.g_mobiledata_rounded,
-                        size: 36,
-                        color: Color(0xFFDB4437),
+              _socialButton(
+                onTap: loading
+                    ? null
+                    : () => _social(ref
+                        .read(authControllerProvider.notifier)
+                        .signInWithGoogle),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.g_mobiledata_rounded,
+                      size: 36,
+                      color: Color(0xFFDB4437),
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'Continue with Google',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.navy,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _socialButton(
-                      onTap: loading
-                          ? null
-                          : () => _social(ref
-                              .read(authControllerProvider.notifier)
-                              .signInWithYahoo),
-                      child: const Text(
-                        'Y!',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF6001D2),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(height: 48),
               Center(
