@@ -13,8 +13,6 @@ abstract class AuthRepository {
 
   Future<AppUser> signInWithGoogle();
 
-  Future<AppUser> signInWithYahoo();
-
   Future<void> sendPasswordReset(String email);
 
   Future<void> signOut();
