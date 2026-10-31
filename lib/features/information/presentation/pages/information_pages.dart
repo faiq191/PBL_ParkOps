@@ -6,6 +6,7 @@ import '../../../../routes.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_bottom_nav.dart';
 import '../../../../widgets/parkops_app_bar.dart';
+import '../../../reporting/presentation/pages/reporting_page.dart';
 
 class InformationPages extends ConsumerWidget {
   const InformationPages({super.key});
@@ -239,54 +240,37 @@ class InformationPages extends ConsumerWidget {
 
           const SizedBox(height: 16),
 
-          // Customer service
-          InkWell(
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Contact Customer Service: 0812 2600 960'),
+
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const ReportingPage(),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF477AA5),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
                 ),
-              );
-            },
-            borderRadius: BorderRadius.circular(14),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.headset_mic_outlined,
-                    color: Color(0xFF477AA5),
-                    size: 25,
-                  ),
-                  SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Need parking assistance?',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.navy,
-                          ),
-                        ),
-                        SizedBox(height: 5),
-                        Text(
-                          'Contact Customer Service - 0812 2600 960',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF8493A3),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.north_east, size: 19, color: Color(0xFF477AA5)),
-                ],
+              ),
+              child: const Text(
+                'Need Assistance',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
+
+          const SizedBox(height: 16),
 
           const SizedBox(height: 16),
 
