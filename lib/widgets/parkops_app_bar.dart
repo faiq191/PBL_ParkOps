@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../routes.dart';
 import '../theme/app_colors.dart';
+import '../features/auth/presentation/providers/auth_providers.dart';
 import '../features/profile/presentation/providers/profile_provider.dart';
 
 class ParkOpsAppBar extends ConsumerWidget implements PreferredSizeWidget {
@@ -13,8 +14,20 @@ class ParkOpsAppBar extends ConsumerWidget implements PreferredSizeWidget {
   const ParkOpsAppBar({super.key, required this.section, required this.title});
 
   @override
-  // Required by PreferredSizeWidget: defines the app bar height (kToolbarHeight + 8)
   Size get preferredSize => const Size.fromHeight(kToolbarHeight + 8);
+
+  Future<void> _logout(BuildContext context, WidgetRef ref) async {
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final error = await ref.read(authControllerProvider.notifier).signOut();
+    if (error != null) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+    navigator.pushNamedAndRemoveUntil(Routes.login, (_) => false);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -60,8 +73,9 @@ class ParkOpsAppBar extends ConsumerWidget implements PreferredSizeWidget {
               Navigator.of(context).pushNamed(Routes.profile);
             } else if (value == 'settings') {
               Navigator.of(context).pushNamed(Routes.settings);
+            } else if (value == 'logout') {
+              _logout(context, ref);
             }
-            // You can add logic for 'logout' here later
           },
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
