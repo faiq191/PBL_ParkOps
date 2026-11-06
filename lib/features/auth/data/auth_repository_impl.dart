@@ -1,9 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../core/failures.dart';
 import '../domain/entities/app_user.dart';
 import '../domain/repositories/auth_repository.dart';
+
+/// Paste the Web client ID here (Firebase console -> Authentication ->
+/// Sign-in method -> Google -> Web SDK configuration -> Web client ID).
+/// Leave empty to let the plugin read it from google-services.json.
+const String kGoogleWebClientId = '488141518443-f2geamlhmgqg2elcsj9bro0qbr7gqcur.apps.googleusercontent.com';
 
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
@@ -14,6 +21,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _db;
+  bool _googleReady = false;
 
   CollectionReference<Map<String, dynamic>> get _users =>
       _db.collection('users');
@@ -36,7 +44,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       return (await _profileFor(cred.user))!;
     } on FirebaseAuthException catch (e) {
-      throw AuthFailure(_messageFor(e.code), e);
+      throw _failure(e);
     }
   }
 
@@ -56,7 +64,7 @@ class AuthRepositoryImpl implements AuthRepository {
         password: password,
       );
     } on FirebaseAuthException catch (e) {
-      throw AuthFailure(_messageFor(e.code), e);
+      throw _failure(e);
     }
     final user = cred.user!;
 
@@ -80,6 +88,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await _rollback(user);
       rethrow;
     } on FirebaseException catch (e) {
+      debugPrint('Profile save failed: code=${e.code} message=${e.message}');
       await _rollback(user);
       throw AuthFailure('Could not save your profile. Please try again.', e);
     }
@@ -88,18 +97,42 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<AppUser> signInWithGoogle() =>
-      _signInWithProvider(GoogleAuthProvider());
-
-  @override
-  Future<AppUser> signInWithYahoo() => _signInWithProvider(YahooAuthProvider());
-
-  Future<AppUser> _signInWithProvider(AuthProvider provider) async {
+  Future<AppUser> signInWithGoogle() async {
     try {
-      final cred = await _auth.signInWithProvider(provider);
+      final google = GoogleSignIn.instance;
+      if (!_googleReady) {
+        await google.initialize(
+          serverClientId:
+              kGoogleWebClientId.isEmpty ? null : kGoogleWebClientId,
+        );
+        _googleReady = true;
+      }
+      final account = await google.authenticate();
+      final idToken = account.authentication.idToken;
+      if (idToken == null) {
+        throw const AuthFailure(
+          'Google did not return an ID token. Check the Web client ID setup.',
+        );
+      }
+      final cred = await _auth.signInWithCredential(
+        GoogleAuthProvider.credential(idToken: idToken),
+      );
       return await _ensureProfile(cred.user!);
+    } on GoogleSignInException catch (e) {
+      debugPrint(
+        'Google sign-in failed: code=${e.code.name} description=${e.description}',
+      );
+      // Compare by name so this compiles regardless of which 7.x release
+      // exports GoogleSignInExceptionCode.
+      if (e.code.name == 'canceled') {
+        throw const AuthFailure('Sign-in was cancelled.');
+      }
+      throw AuthFailure(
+        'Google sign-in failed (${e.code.name}): ${e.description ?? 'no details'}',
+        e,
+      );
     } on FirebaseAuthException catch (e) {
-      throw AuthFailure(_messageFor(e.code), e);
+      throw _failure(e);
     }
   }
 
@@ -123,7 +156,8 @@ class AuthRepositoryImpl implements AuthRepository {
         'createdAt': FieldValue.serverTimestamp(),
       });
       return AppUser(uid: user.uid, username: name, email: user.email ?? '');
-    } on FirebaseException {
+    } on FirebaseException catch (e) {
+      debugPrint('Profile load/save failed: code=${e.code} message=${e.message}');
       return AppUser(
         uid: user.uid,
         username: _fallbackName(user),
@@ -147,12 +181,18 @@ class AuthRepositoryImpl implements AuthRepository {
       await _auth.sendPasswordResetEmail(email: email.trim());
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') return;
-      throw AuthFailure(_messageFor(e.code), e);
+      throw _failure(e);
     }
   }
 
   @override
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    try {
+      await GoogleSignIn.instance.signOut();
+    } catch (_) {
+    }
+    await _auth.signOut();
+  }
 
   Future<AppUser?> _profileFor(User? user) async {
     if (user == null) return null;
@@ -166,8 +206,8 @@ class AuthRepositoryImpl implements AuthRepository {
           role: (data['role'] as String?) ?? 'user',
         );
       }
-    } on FirebaseException {
-      // Profile unreadable: fall back to the Auth data below.
+    } on FirebaseException catch (e) {
+      debugPrint('Profile read failed: code=${e.code} message=${e.message}');
     }
     return AppUser(
       uid: user.uid,
@@ -187,7 +227,12 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
-  String _messageFor(String code) {
+  AuthFailure _failure(FirebaseAuthException e) {
+    debugPrint('Auth error: code=${e.code} message=${e.message}');
+    return AuthFailure(_messageFor(e.code, e.message), e);
+  }
+
+  String _messageFor(String code, [String? detail]) {
     switch (code) {
       case 'invalid-email':
         return 'Enter a valid email address.';
@@ -213,9 +258,15 @@ class AuthRepositoryImpl implements AuthRepository {
       case 'popup-closed-by-user':
         return 'Sign-in was cancelled.';
       case 'operation-not-allowed':
-        return 'Email/password sign-in is not enabled for this app.';
+        return 'This sign-in method is not enabled in the Firebase console.';
+      case 'configuration-not-found':
+        return 'Authentication is not set up for this Firebase project '
+            '($code).';
+      case 'invalid-api-key':
+      case 'app-not-authorized':
+        return 'This app is not authorized for this Firebase project ($code).';
       default:
-        return 'Authentication failed. Please try again.';
+        return 'Authentication failed ($code): ${detail ?? 'no details'}';
     }
   }
 }
