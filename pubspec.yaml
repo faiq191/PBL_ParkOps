@@ -13,7 +13,15 @@ dependencies:
   cloud_firestore: ^6.10.0
   flutter_riverpod: ^3.4.3
   firebase_core: ^4.15.0
-  shared_preferences: ^2.3.2
+  shared_preferences: ^2.5.6
+  firebase_auth: ^6.7.0
+  flutter_local_notifications: ^22.3.2
+  flutter_timezone: ^5.1.1
+  timezone: ^0.11.2
+  path_provider: ^2.1.6
+  image_picker: ^1.2.4
+  url_launcher: ^6.3.2
+  google_sign_in: 7.0.0
 
 dev_dependencies:
   flutter_test:

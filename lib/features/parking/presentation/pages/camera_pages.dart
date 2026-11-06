@@ -6,6 +6,7 @@ import '../../../../routes.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_bottom_nav.dart';
 import '../../../../widgets/parkops_app_bar.dart';
+import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../domain/entities/parking_slot.dart';
 import '../../domain/entities/parking_zone.dart';
 import '../providers/parking_providers.dart';
@@ -21,11 +22,27 @@ class CameraPages extends ConsumerStatefulWidget {
 }
 
 class _CameraPagesState extends ConsumerState<CameraPages> {
-  bool _overlay = true;
+  Future<void> _setOverlay(bool enabled) async {
+    final saved = await ref
+        .read(cameraOverlayPreferenceProvider.notifier)
+        .setEnabled(enabled);
+    if (!mounted) return;
+    if (!saved) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Could not save the camera preference.'),
+          ),
+        );
+      return;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final zonesAsync = ref.watch(zonesStreamProvider);
+    final overlayEnabled = ref.watch(cameraOverlayPreferenceProvider);
 
     return Scaffold(
       backgroundColor: AppColors.paper,
@@ -43,13 +60,13 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
         ),
         // Rebuild whenever the selected zone changes (DV-3: selection is
         // Riverpod state in parking_providers.dart)
-        data: (_) => _buildBody(),
+        data: (_) => _buildBody(overlayEnabled),
       ),
       bottomNavigationBar: const AppBottomNav(currentIndex: 1),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(bool overlayEnabled) {
     final zone = ref.watch(selectedZoneProvider);
     if (zone == null) {
       return const Center(child: Text('No parking zones yet'));
@@ -62,7 +79,7 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
       children: [
-        _cameraCard(zone, occupied),
+        _cameraCard(zone, occupied, overlayEnabled),
         const SizedBox(height: 14),
         Row(
           children: [
@@ -99,7 +116,11 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
     );
   }
 
-  Widget _cameraCard(ParkingZone zone, List<bool> occupied) {
+  Widget _cameraCard(
+    ParkingZone zone,
+    List<bool> occupied,
+    bool overlayEnabled,
+  ) {
     // Lots listed in the camera header dropdown
     final zones = ref.watch(zonesListProvider);
     return Container(
@@ -163,7 +184,7 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
           _DummyCameraFeed(
             zone: zone,
             occupied: occupied,
-            showOverlay: _overlay,
+            showOverlay: overlayEnabled,
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
@@ -180,9 +201,9 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
                 const Spacer(),
                 Switch(
                   // Toggle the detection overlay on top of the camera feed
-                  value: _overlay,
+                  value: overlayEnabled,
                   activeTrackColor: AppColors.navy,
-                  onChanged: (v) => setState(() => _overlay = v),
+                  onChanged: _setOverlay,
                 ),
               ],
             ),
