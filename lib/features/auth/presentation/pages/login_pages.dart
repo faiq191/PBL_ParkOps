@@ -30,6 +30,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     super.dispose();
   }
 
+  /// Where to go after signing in: the route passed as an argument (for
+  /// example the admin dashboard), otherwise the homepage.
+  String get _next {
+    final arg = ModalRoute.of(context)?.settings.arguments;
+    return arg is String ? arg : Routes.home;
+  }
+
   Future<void> _login() async {
     FocusScope.of(context).unfocus();
     final emailError = AuthValidators.email(_emailController.text);
@@ -52,7 +59,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
     await ref.read(onboardingRepositoryProvider).setDone(done: true);
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed(Routes.home);
+    Navigator.of(context).pushReplacementNamed(_next);
   }
 
   Future<void> _forgotPassword() async {
@@ -80,7 +87,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
     await ref.read(onboardingRepositoryProvider).setDone(done: true);
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed(Routes.home);
+    Navigator.of(context).pushReplacementNamed(_next);
   }
 
   void _showSoon(String message) {
