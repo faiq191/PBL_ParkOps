@@ -1,126 +1,130 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/failures.dart';
 import '../../../../routes.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_bottom_nav.dart';
 import '../../../../widgets/parkops_app_bar.dart';
+import '../../data/camera_feeds.dart';
 import '../../domain/entities/camera_feed.dart';
 import '../../domain/entities/camera_inference_result.dart';
-import '../../domain/entities/parking_zone.dart';
 import '../providers/parking_providers.dart';
 
-/// Parking zones still use demo metadata when Firestore has not been seeded.
 class HomepagePages extends ConsumerWidget {
   const HomepagePages({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final zonesAsync = ref.watch(zonesStreamProvider);
+    final selectedCameraId = ref.watch(selectedCameraIdProvider);
+    final results = [
+      for (final feed in cameraFeeds)
+        ref.watch(cameraInferenceStreamProvider(feed.id)),
+    ];
+    final selectedIndex = cameraFeeds.indexWhere(
+      (feed) => feed.id == selectedCameraId,
+    );
+    final selectedResult = selectedIndex < 0
+        ? const AsyncData<CameraInferenceResult?>(null)
+        : results[selectedIndex];
 
     return Scaffold(
       backgroundColor: AppColors.paper,
       appBar: const ParkOpsAppBar(section: 'Homepage', title: 'ParkOps'),
-      body: zonesAsync.when(
-        loading: () =>
-            const Scaffold(body: Center(child: CircularProgressIndicator())),
-        error: (e, _) => Center(
-          child: Text(
-            e is Failure ? e.message : 'Could not load parking zones',
+      body: ListView(
+        padding: const EdgeInsets.all(18),
+        children: [
+          _AggregateSummary(results: results),
+          const SizedBox(height: 18),
+          _SelectedCameraCard(
+            feed: cameraFeeds[selectedIndex < 0 ? 0 : selectedIndex],
+            inference: selectedResult,
           ),
-        ),
-        data: (_) => const _HomepageBody(),
+          const SizedBox(height: 18),
+          const Text(
+            'Explore the lot',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.navy,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _ExploreCard(
+                  icon: Icons.videocam_outlined,
+                  title: 'Camera view',
+                  subtitle: 'See camera detections',
+                  onTap: () =>
+                      Navigator.of(context).pushReplacementNamed(Routes.camera),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ExploreCard(
+                  icon: Icons.map_outlined,
+                  title: 'Parking map',
+                  subtitle: 'Find an open bay',
+                  onTap: () =>
+                      Navigator.of(context).pushReplacementNamed(Routes.map),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'Parking cameras',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.navy,
+            ),
+          ),
+          const SizedBox(height: 10),
+          for (var index = 0; index < cameraFeeds.length; index++)
+            _CameraRow(
+              feed: cameraFeeds[index],
+              inference: results[index],
+              selected: cameraFeeds[index].id == selectedCameraId,
+              onTap: () => ref
+                  .read(selectedCameraIdProvider.notifier)
+                  .select(cameraFeeds[index].id),
+            ),
+        ],
       ),
       bottomNavigationBar: const AppBottomNav(currentIndex: 0),
     );
   }
 }
 
-/// Home tab body. Rebuilds automatically whenever the selected zone changes
-/// (DV-3: selection is now Riverpod state in parking_providers.dart).
-class _HomepageBody extends ConsumerWidget {
-  const _HomepageBody();
+class _AggregateSummary extends StatelessWidget {
+  const _AggregateSummary({required this.results});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final zones = ref.watch(zonesListProvider);
-    final selectedId = ref.watch(selectedZoneIdProvider);
-    final feed = ref.watch(selectedCameraFeedProvider);
-    final inference = ref.watch(cameraInferenceStreamProvider(feed.id));
-
-    return ListView(
-      padding: const EdgeInsets.all(18),
-      children: [
-        _LiveCameraSummary(feed: feed, inference: inference),
-        const SizedBox(height: 18),
-        const Text(
-          'Explore the lot',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.navy,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: _ExploreCard(
-                icon: Icons.videocam_outlined,
-                title: 'Camera view',
-                subtitle: 'See delayed detection',
-                onTap: () =>
-                    Navigator.of(context).pushReplacementNamed(Routes.camera),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _ExploreCard(
-                icon: Icons.map_outlined,
-                title: 'Parking map',
-                subtitle: 'Find an open bay',
-                onTap: () =>
-                    Navigator.of(context).pushReplacementNamed(Routes.map),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        const Text(
-          'Parking lots',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.navy,
-          ),
-        ),
-        const SizedBox(height: 10),
-        for (final zone in zones)
-          _LotRow(
-            zone: zone,
-            selected: zone.id == selectedId,
-            // Update the selected-zone state so Camera & Map tabs follow the selection
-            onTap: () =>
-                ref.read(selectedZoneIdProvider.notifier).select(zone.id),
-          ),
-      ],
-    );
-  }
-}
-
-class _LiveCameraSummary extends StatelessWidget {
-  const _LiveCameraSummary({required this.feed, required this.inference});
-
-  final CameraFeed feed;
-  final AsyncValue<CameraInferenceResult?> inference;
+  final List<AsyncValue<CameraInferenceResult?>> results;
 
   @override
   Widget build(BuildContext context) {
-    final result = inference.asData?.value;
-    final detectionCount = result == null
-        ? null
-        : result.vehicleCount + result.emptySpaceCount;
+    final availableResults = results
+        .map((result) => result.asData?.value)
+        .whereType<CameraInferenceResult>()
+        .toList();
+    final emptySpaces = availableResults.fold<int>(
+      0,
+      (sum, result) => sum + result.emptySpaceCount,
+    );
+    final vehicles = availableResults.fold<int>(
+      0,
+      (sum, result) => sum + result.vehicleCount,
+    );
+    final lastUpdate = availableResults
+        .map((result) => result.processedAt)
+        .whereType<DateTime>()
+        .fold<DateTime?>(null, (latest, time) {
+          if (latest == null || time.isAfter(latest)) return time;
+          return latest;
+        });
+    final hasError = results.any((result) => result.hasError);
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -132,12 +136,12 @@ class _LiveCameraSummary extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Latest camera detections',
+            'Empty spaces detected across cameras',
             style: TextStyle(color: AppColors.mist, fontSize: 12),
           ),
           const SizedBox(height: 4),
           Text(
-            result == null ? '--' : '$detectionCount',
+            availableResults.isEmpty ? '--' : '$emptySpaces',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 38,
@@ -145,14 +149,10 @@ class _LiveCameraSummary extends StatelessWidget {
               height: 1,
             ),
           ),
-          const Text(
-            'detections in the latest frame',
-            style: TextStyle(color: AppColors.mist, fontSize: 12),
-          ),
-          const SizedBox(height: 4),
           Text(
-            feed.title,
-            style: const TextStyle(color: AppColors.mist, fontSize: 11),
+            'Vehicles detected: $vehicles · '
+            '${availableResults.length}/${cameraFeeds.length} cameras reporting',
+            style: const TextStyle(color: AppColors.mist, fontSize: 12),
           ),
           const SizedBox(height: 10),
           Row(
@@ -161,83 +161,167 @@ class _LiveCameraSummary extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  _statusText(result),
+                  hasError && availableResults.length < cameraFeeds.length
+                      ? 'Some camera results could not be loaded'
+                      : availableResults.isEmpty
+                      ? 'Waiting for the laptop ML worker'
+                      : 'Latest update: ${_formatHomeTime(lastUpdate)}',
                   style: const TextStyle(color: AppColors.amber, fontSize: 10),
                 ),
               ),
             ],
           ),
-          if (result != null) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _HomeMetric(
-                    value: '${result.vehicleCount}',
-                    label: 'Vehicles',
-                  ),
-                ),
-                Expanded(
-                  child: _HomeMetric(
-                    value: '${result.emptySpaceCount}',
-                    label: 'Empty spaces',
-                  ),
-                ),
-              ],
-            ),
-          ],
         ],
       ),
     );
   }
-
-  String _statusText(CameraInferenceResult? result) {
-    if (inference.hasError) return 'Could not load camera data';
-    if (result == null) return 'Waiting for the laptop ML worker';
-    return 'Last update: ${_formatHomeTime(result.processedAt)}';
-  }
 }
 
-class _HomeMetric extends StatelessWidget {
-  const _HomeMetric({required this.value, required this.label});
+class _SelectedCameraCard extends StatelessWidget {
+  const _SelectedCameraCard({required this.feed, required this.inference});
 
-  final String value;
-  final String label;
+  final CameraFeed feed;
+  final AsyncValue<CameraInferenceResult?> inference;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
+    final result = inference.asData?.value;
+    final error = inference.hasError;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  feed.title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.navy,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: result == null ? AppColors.line : AppColors.tealSoft,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  error
+                      ? 'Unavailable'
+                      : result == null
+                      ? 'Waiting'
+                      : '${result.vehicleCount + result.emptySpaceCount} '
+                            'detections',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.navy,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(color: AppColors.mist, fontSize: 11),
-        ),
-      ],
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                result == null ? '--' : '${result.emptySpaceCount}',
+                style: const TextStyle(
+                  fontSize: 52,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.navy,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: const Text(
+                  'empty spaces detected',
+                  style: TextStyle(fontSize: 14, color: AppColors.mist),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            result == null
+                ? error
+                      ? 'Could not load camera data.'
+                      : 'Ask the laptop operator to start the ML worker.'
+                : '${result.vehicleCount} vehicles detected in the latest frame.',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.teal,
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: AppColors.line),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Camera inference',
+                style: TextStyle(fontSize: 12, color: AppColors.mist),
+              ),
+              Flexible(
+                child: Text(
+                  result == null
+                      ? error
+                            ? 'Check connection'
+                            : 'Waiting for worker'
+                      : _formatHomeTime(result.processedAt),
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(fontSize: 12, color: AppColors.mist),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _LotRow extends StatelessWidget {
-  final ParkingZone zone;
-  final bool selected;
-  final VoidCallback onTap;
-  const _LotRow({
-    required this.zone,
+class _CameraRow extends StatelessWidget {
+  const _CameraRow({
+    required this.feed,
+    required this.inference,
     required this.selected,
     required this.onTap,
   });
 
+  final CameraFeed feed;
+  final AsyncValue<CameraInferenceResult?> inference;
+  final bool selected;
+  final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
+    final result = inference.asData?.value;
+    final statusColor = result == null ? AppColors.mist : AppColors.teal;
+    final status = inference.hasError
+        ? 'Unavailable'
+        : result == null
+        ? 'Waiting'
+        : 'E ${result.emptySpaceCount} / V ${result.vehicleCount}';
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
@@ -250,17 +334,16 @@ class _LotRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.line),
+              border: Border(left: BorderSide(color: statusColor, width: 4)),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        zone.name,
+                        feed.title,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
@@ -268,7 +351,7 @@ class _LotRow extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        zone.location,
+                        feed.id,
                         style: const TextStyle(
                           fontSize: 10,
                           color: Color(0xFF8892A0),
@@ -287,10 +370,10 @@ class _LotRow extends StatelessWidget {
                     ),
                   ),
                 Text(
-                  zone.cameraImageUrl,
+                  status,
                   style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
                     color: AppColors.navy,
                   ),
                 ),
@@ -304,16 +387,17 @@ class _LotRow extends StatelessWidget {
 }
 
 class _ExploreCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback? onTap;
   const _ExploreCard({
     required this.icon,
     required this.title,
     required this.subtitle,
     this.onTap,
   });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
