@@ -1,63 +1,135 @@
-# ParkOps camera inference worker
+# Run ParkOps camera inference locally
 
-This Cloud Run service handles one Opentopia camera for the MVP. Cloud Scheduler
-calls `/infer` once per minute. The worker reads one JPEG frame from the
-camera's MJPEG endpoint, runs `best.pt`, and writes the counts and detections to
-`camera_inference/opentopia-17916` in Firestore.
+This semester-project setup runs the YOLO worker on your computer. It reads a
+frame from the one configured Opentopia camera, runs `best.pt` locally, then
+writes counts and detections to Firestore in project `pblparkopsfaiq`. The
+Flutter app listens to the `camera_inference/opentopia-17916` document.
 
-The model stays in a private Cloud Storage bucket. Do not commit `best.pt`,
-service-account keys, or signed URLs to this repository.
+No Cloud Run service, Cloud Scheduler job, model bucket, or Google Cloud
+billing setup is needed. Your computer must remain on, connected to the
+internet, and running the Python worker for new results to appear. Inference is
+run immediately and then once per minute.
 
-## Configure and deploy
+The laptop operator starts the worker when the team asks for ML results and
+stops it with **Ctrl+C** when they are done. The app reads the shared results
+from Firestore, so teammates do not need the model, Python, or a connection to
+the laptop's local network. When a result is more than two minutes old, the
+Camera tab marks it as stale and tells users to ask the laptop operator to
+start the worker.
 
-Use the Google Cloud project already associated with the app
-(`pblparkopsfaiq`), after confirming billing is enabled. Create a private
-regional bucket and upload the weights, for example:
+## 1. Put the model on your computer
 
-```powershell
-gcloud config set project pblparkopsfaiq
-gcloud storage buckets create gs://pblparkopsfaiq-parkops-models --location=asia-southeast1 --uniform-bucket-level-access
-gcloud storage cp .\best.pt gs://pblparkopsfaiq-parkops-models/best.pt
+Keep the weights out of Git. The default location is:
+
+```text
+cloud-inference/models/best.pt
 ```
 
-Enable Cloud Run, Cloud Build, Artifact Registry, Cloud Scheduler, Firestore,
-and Cloud Storage APIs. Create a Cloud Run service account with
-`roles/storage.objectViewer` on the model bucket and `roles/datastore.user` on
-the project. Build and deploy the service with that service account and these
-environment variables:
+Alternatively, store the file elsewhere and pass its path with `--model`.
 
-- `MODEL_GCS_URI=gs://pblparkopsfaiq-parkops-models/best.pt`
-- `CAMERA_URL=http://118.243.55.168:84/VIDEO.CGI`
-- `VEHICLE_CLASS_NAMES=car,vehicle,truck,bus,motorcycle`
-- `EMPTY_SPACE_CLASS_NAMES=empty,empty_space,empty slot,empty parking space,empty bay,free space,vacant`
-- `CONFIDENCE_THRESHOLD=0.25`
+## 2. Install local dependencies (Windows PowerShell)
 
-Set Cloud Run request concurrency to `1` for the first deployment. Keep the
-service private. Create a Cloud Scheduler HTTP job with schedule `* * * * *`,
-targeting the service's `/infer` URL with method `POST` and OIDC authentication
-from a service account granted `roles/run.invoker` on the service.
+Use Python 3.11-3.13. From the repository root:
 
-The first successful inference creates the Firestore document consumed by the
-Flutter app. The worker uses the model's class labels; update the two class-name
-environment variables if the labels in `best.pt` use different names.
+```powershell
+python -m venv .\cloud-inference\.venv
+.\cloud-inference\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r .\cloud-inference\requirements.txt
+```
 
-Run the local class-counting tests from the repository root with:
+This requirements file installs the CUDA 12.4 build of PyTorch and its
+matching TorchVision. For an NVIDIA GPU, the included PyTorch runtime is
+enough; you do not need to install the full CUDA Toolkit separately. The
+Windows NVIDIA driver must support CUDA 12.4 or newer. The configured GTX
+1650 and driver 555.97 were verified with this setup.
+
+If PowerShell prevents environment activation, run the venv interpreter
+directly instead:
+
+```powershell
+.\cloud-inference\.venv\Scripts\python.exe -m pip install -r .\cloud-inference\requirements.txt
+```
+
+PyTorch and Ultralytics may take a while and use several GB of disk space.
+The worker selects CUDA GPU 0 by default and fails rather than silently using
+the CPU if CUDA is unavailable. Use `--device cpu` only if you intentionally
+want CPU inference.
+
+## 3. Allow your local worker to write to Firestore
+
+The worker uses Application Default Credentials (ADC); it does not use a
+service-account key file. Install the Google Cloud CLI if it is not already
+installed, then authenticate with the Google account that has access to the
+Firebase project:
+
+```powershell
+gcloud auth application-default login
+```
+
+The account needs the **Cloud Datastore User** IAM role
+(`roles/datastore.user`) on project `pblparkopsfaiq` to write the result
+document. Ask the Firebase/Google Cloud project owner to grant this role if
+your account does not already have it. This login does not require enabling
+billing by itself.
+
+The Flutter client's Firestore rule still allows signed-in app users to read
+`camera_inference` and denies client writes. The local worker uses ADC and
+Firestore IAM, so its writes are not controlled by client security rules.
+
+## 4. Check the model's actual class labels
+
+From the repository root, run:
+
+```powershell
+.\cloud-inference\.venv\Scripts\python.exe .\cloud-inference\run_local.py --model "D:\path\to\best.pt" --show-classes
+```
+
+The output lists the exact class labels in the weights. Use those labels for
+`--vehicle-labels` and `--empty-space-labels`. The defaults are examples only;
+if a label does not match exactly (ignoring case, spaces, `_`, and `-`), it
+will not contribute to that count.
+
+## 5. Run one inference, then keep it running
+
+First try one frame/result:
+
+```powershell
+.\cloud-inference\.venv\Scripts\python.exe .\cloud-inference\run_local.py `
+  --model "D:\path\to\best.pt" `
+  --project pblparkopsfaiq `
+  --vehicle-labels "car,vehicle,truck,bus,motorcycle" `
+  --empty-space-labels "empty,empty_space" `
+  --once
+```
+
+Replace the label examples with the model's actual labels. To keep the worker
+available for your teammates, run the same command without `--once`. It starts
+immediately, then processes a new frame every minute. Press **Ctrl+C** to stop.
+If the model is at the default `cloud-inference\models\best.pt`, `--model` can
+be omitted. The camera defaults to
+`http://118.243.55.168:84/VIDEO.CGI`; override it with `--camera-url` if that
+endpoint changes.
+
+The worker logs the inference device after each successful frame. It should
+say `cuda:0` when using the first NVIDIA GPU.
+
+Once inference succeeds, the worker logs the counts and updates the Firestore
+document. Open the app's Camera tab while signed in to see those counts. A
+missing model, inaccessible camera, or Firestore permission error is reported
+in the terminal; fix the reported issue and run the worker again.
+
+## Limits
+
+The worker counts model detections per sampled frame. It does not yet map
+detections to specific parking bays or confirm bay availability. The camera is
+a public third-party feed and may be unavailable or change format. Use it only
+if its terms allow automated processing.
+
+## Tests
+
+From the repository root:
 
 ```powershell
 python -m unittest discover -s cloud-inference/tests -v
 ```
-
-## App read access
-
-The app's authenticated users need read access to `camera_inference` documents,
-but clients must not write inference results. If managing Firestore rules,
-allow reads for authenticated users and deny client writes for this collection;
-the Cloud Run service writes with its service account through the Admin SDK.
-
-## Limits
-
-This first version publishes vehicle and empty-space detection counts. It does
-not map detections to individual parking bays. The camera is a public third-party
-feed and can go offline or change format; confirm its processing terms and
-availability before relying on it. A Cloud Scheduler run can fail if the
-camera endpoint is unreachable from Cloud Run.

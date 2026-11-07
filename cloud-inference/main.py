@@ -1,4 +1,3 @@
-import logging
 import os
 import threading
 from datetime import datetime, timezone
@@ -7,9 +6,8 @@ from urllib.request import Request, urlopen
 
 import cv2
 import firebase_admin
+from firebase_admin import firestore as admin_firestore
 import numpy as np
-from flask import Flask, jsonify
-from google.cloud import firestore, storage
 from ultralytics import YOLO
 
 from detection_logic import summarize_detections
@@ -18,10 +16,12 @@ from detection_logic import summarize_detections
 CAMERA_ID = "opentopia-17916"
 CAMERA_TITLE = "Parking with Apartment View - Osaka"
 DEFAULT_CAMERA_URL = "http://118.243.55.168:84/VIDEO.CGI"
-MODEL_PATH = Path("/tmp/best.pt")
+DEFAULT_PROJECT_ID = "pblparkopsfaiq"
+DEFAULT_MODEL_PATH = Path(__file__).parent / "models" / "best.pt"
 MAX_FRAME_BYTES = 8 * 1024 * 1024
+MAX_PREVIEW_BYTES = 512 * 1024
+MAX_PREVIEW_WIDTH = 640
 
-app = Flask(__name__)
 _model = None
 _model_lock = threading.Lock()
 _firestore_client = None
@@ -32,28 +32,28 @@ def _configured_names(environment_key: str, defaults: str) -> set[str]:
     return {name.strip() for name in raw_names.split(",") if name.strip()}
 
 
-def _download_model() -> Path:
-    model_uri = os.getenv("MODEL_GCS_URI", "")
-    if not model_uri.startswith("gs://"):
-        raise ValueError("MODEL_GCS_URI must be a gs:// URI to best.pt")
-
-    bucket_name, _, object_name = model_uri[5:].partition("/")
-    if not bucket_name or not object_name:
-        raise ValueError("MODEL_GCS_URI must include a bucket and object path")
-
-    storage.Client().bucket(bucket_name).blob(object_name).download_to_filename(
-        str(MODEL_PATH)
-    )
-    return MODEL_PATH
-
-
 def _get_model() -> YOLO:
     global _model
     if _model is None:
         with _model_lock:
             if _model is None:
-                _model = YOLO(str(_download_model()))
+                model_path = Path(
+                    os.getenv("MODEL_PATH", str(DEFAULT_MODEL_PATH))
+                ).expanduser()
+                if not model_path.is_file():
+                    raise FileNotFoundError(
+                        f"Model weights not found: {model_path}. "
+                        "Pass --model with the path to best.pt."
+                    )
+                _model = YOLO(str(model_path))
     return _model
+
+
+def get_model_classes() -> dict[int, str]:
+    names = _get_model().names
+    if isinstance(names, dict):
+        return {int(class_id): str(name) for class_id, name in names.items()}
+    return {class_id: str(name) for class_id, name in enumerate(names)}
 
 
 def _read_jpeg_frame(camera_url: str) -> np.ndarray:
@@ -83,9 +83,47 @@ def _read_jpeg_frame(camera_url: str) -> np.ndarray:
     raise RuntimeError("No complete JPEG frame received from the camera")
 
 
+def _encode_frame_preview(frame: np.ndarray) -> bytes:
+    height, width = frame.shape[:2]
+    scale = min(1.0, MAX_PREVIEW_WIDTH / width)
+    preview = (
+        cv2.resize(
+            frame,
+            (round(width * scale), round(height * scale)),
+            interpolation=cv2.INTER_AREA,
+        )
+        if scale < 1
+        else frame
+    )
+
+    while True:
+        for quality in (65, 50, 35):
+            encoded_ok, encoded = cv2.imencode(
+                ".jpg",
+                preview,
+                [cv2.IMWRITE_JPEG_QUALITY, quality],
+            )
+            if not encoded_ok:
+                raise RuntimeError("Could not encode the camera frame preview")
+            if encoded.nbytes <= MAX_PREVIEW_BYTES:
+                return encoded.tobytes()
+
+        preview_height, preview_width = preview.shape[:2]
+        if preview_width <= 160 or preview_height <= 120:
+            break
+        preview = cv2.resize(
+            preview,
+            (max(1, round(preview_width * 0.75)), max(1, round(preview_height * 0.75))),
+            interpolation=cv2.INTER_AREA,
+        )
+
+    raise RuntimeError("Camera frame preview exceeds the Firestore size limit")
+
+
 def _detect(frame: np.ndarray) -> tuple[dict, list[dict]]:
     prediction = _get_model().predict(
         source=frame,
+        device=os.getenv("YOLO_DEVICE", "0"),
         conf=float(os.getenv("CONFIDENCE_THRESHOLD", "0.25")),
         verbose=False,
     )[0]
@@ -122,6 +160,7 @@ def run_inference() -> dict:
     global _firestore_client
     frame = _read_jpeg_frame(os.getenv("CAMERA_URL", DEFAULT_CAMERA_URL))
     counts, detections = _detect(frame)
+    frame_preview = _encode_frame_preview(frame)
     processed_at = datetime.now(timezone.utc)
     result = {
         "cameraId": CAMERA_ID,
@@ -131,34 +170,25 @@ def run_inference() -> dict:
         "detections": detections,
         "frameWidth": int(frame.shape[1]),
         "frameHeight": int(frame.shape[0]),
+        "framePreview": frame_preview,
         "processedAt": processed_at,
-        "modelObject": os.getenv("MODEL_GCS_URI", ""),
+        "inferenceDevice": str(_get_model().predictor.device),
+        "modelName": Path(
+            os.getenv("MODEL_PATH", str(DEFAULT_MODEL_PATH))
+        ).expanduser().name,
     }
 
     if _firestore_client is None:
         try:
-            firebase_admin.get_app()
+            firebase_app = firebase_admin.get_app()
         except ValueError:
-            firebase_admin.initialize_app()
-        _firestore_client = firestore.client()
+            firebase_app = firebase_admin.initialize_app(
+                options={
+                    "projectId": os.getenv(
+                        "GOOGLE_CLOUD_PROJECT", DEFAULT_PROJECT_ID
+                    )
+                }
+            )
+        _firestore_client = admin_firestore.client(app=firebase_app)
     _firestore_client.collection("camera_inference").document(CAMERA_ID).set(result)
     return {**result, "processedAt": processed_at.isoformat()}
-
-
-@app.get("/healthz")
-def health_check():
-    return jsonify({"status": "ok"})
-
-
-@app.post("/infer")
-def infer():
-    if not os.getenv("MODEL_GCS_URI"):
-        return jsonify({"error": "MODEL_GCS_URI is not configured"}), 503
-
-    try:
-        result = run_inference()
-    except (OSError, RuntimeError, ValueError) as error:
-        logging.exception("Camera inference failed")
-        return jsonify({"error": str(error)}), 502
-
-    return jsonify(result)
