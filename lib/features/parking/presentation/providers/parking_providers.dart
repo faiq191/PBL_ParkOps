@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/di.dart';
+import '../../data/camera_feeds.dart';
+import '../../domain/entities/camera_feed.dart';
+import '../../domain/entities/camera_inference_result.dart';
 import '../../domain/entities/parking_slot.dart';
 import '../../domain/entities/parking_zone.dart';
 
@@ -15,16 +18,6 @@ final zonesListProvider = Provider<List<ParkingZone>>((ref) {
   return ref.watch(zonesStreamProvider).value ?? const <ParkingZone>[];
 });
 
-// Aggregate free and total slots across all zones for the hero card.
-// Moved out of Homepage.build (Grep 2 fix: no business logic in build()).
-final zoneTotalsProvider = Provider<({int available, int total})>((ref) {
-  final zones = ref.watch(zonesListProvider);
-  return (
-    available: zones.fold<int>(0, (acc, zone) => acc + zone.availableSlots),
-    total: zones.fold<int>(0, (acc, zone) => acc + zone.totalSlots),
-  );
-});
-
 /// Lot currently picked. Shared by the Home, Camera and Map tabs.
 /// DV-3 fix: replaces the global `ValueNotifier<int> selectedLotIndex` from
 /// widgets/dummy_lots.dart with Riverpod state.
@@ -35,8 +28,9 @@ class SelectedZoneId extends Notifier<String?> {
   void select(String zoneId) => state = zoneId;
 }
 
-final selectedZoneIdProvider =
-    NotifierProvider<SelectedZoneId, String?>(SelectedZoneId.new);
+final selectedZoneIdProvider = NotifierProvider<SelectedZoneId, String?>(
+  SelectedZoneId.new,
+);
 
 /// The zone the Home/Camera/Map tabs are currently focused on: the selected
 /// zone if it still exists, otherwise the first zone as a sensible default.
@@ -50,14 +44,43 @@ final selectedZoneProvider = Provider<ParkingZone?>((ref) {
   return zones.first;
 });
 
+class SelectedCameraId extends Notifier<String> {
+  @override
+  String build() => defaultCameraId;
+
+  void select(String cameraId) {
+    if (cameraFeeds.any((feed) => feed.id == cameraId)) state = cameraId;
+  }
+}
+
+final selectedCameraIdProvider = NotifierProvider<SelectedCameraId, String>(
+  SelectedCameraId.new,
+);
+
+final selectedCameraFeedProvider = Provider<CameraFeed>((ref) {
+  final selectedId = ref.watch(selectedCameraIdProvider);
+  return cameraFeeds.firstWhere((feed) => feed.id == selectedId);
+});
+
 // Stream of a single zone by its zone id
-final zoneStreamProvider =
-    StreamProvider.family<ParkingZone, String>((ref, zoneId) {
+final zoneStreamProvider = StreamProvider.family<ParkingZone, String>((
+  ref,
+  zoneId,
+) {
   return ref.watch(parkingRepositoryProvider).watchZone(zoneId);
 });
 
 // Stream of parking slots for a given zone
-final slotsStreamProvider =
-    StreamProvider.family<List<ParkingSlot>, String>((ref, zoneId) {
+final slotsStreamProvider = StreamProvider.family<List<ParkingSlot>, String>((
+  ref,
+  zoneId,
+) {
   return ref.watch(parkingRepositoryProvider).watchSlots(zoneId);
 });
+
+final cameraInferenceStreamProvider =
+    StreamProvider.family<CameraInferenceResult?, String>((ref, cameraId) {
+      return ref
+          .watch(parkingRepositoryProvider)
+          .watchCameraInference(cameraId);
+    });
