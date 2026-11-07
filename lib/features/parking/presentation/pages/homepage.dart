@@ -6,6 +6,7 @@ import '../../../../routes.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_bottom_nav.dart';
 import '../../../../widgets/parkops_app_bar.dart';
+import '../../domain/entities/camera_feed.dart';
 import '../../domain/entities/camera_inference_result.dart';
 import '../../domain/entities/parking_zone.dart';
 import '../providers/parking_providers.dart';
@@ -45,12 +46,13 @@ class _HomepageBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final zones = ref.watch(zonesListProvider);
     final selectedId = ref.watch(selectedZoneIdProvider);
-    final inference = ref.watch(cameraInferenceStreamProvider(parkingCameraId));
+    final feed = ref.watch(selectedCameraFeedProvider);
+    final inference = ref.watch(cameraInferenceStreamProvider(feed.id));
 
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
-        _LiveCameraSummary(inference: inference),
+        _LiveCameraSummary(feed: feed, inference: inference),
         const SizedBox(height: 18),
         const Text(
           'Explore the lot',
@@ -108,8 +110,9 @@ class _HomepageBody extends ConsumerWidget {
 }
 
 class _LiveCameraSummary extends StatelessWidget {
-  const _LiveCameraSummary({required this.inference});
+  const _LiveCameraSummary({required this.feed, required this.inference});
 
+  final CameraFeed feed;
   final AsyncValue<CameraInferenceResult?> inference;
 
   @override
@@ -145,6 +148,11 @@ class _LiveCameraSummary extends StatelessWidget {
           const Text(
             'detections in the latest frame',
             style: TextStyle(color: AppColors.mist, fontSize: 12),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            feed.title,
+            style: const TextStyle(color: AppColors.mist, fontSize: 11),
           ),
           const SizedBox(height: 10),
           Row(

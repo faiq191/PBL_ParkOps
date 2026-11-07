@@ -5,6 +5,9 @@ import time
 from pathlib import Path
 
 from main import (
+    CAMERA_ID,
+    CAMERA_SOURCES,
+    CameraFrameError,
     DEFAULT_CAMERA_URL,
     DEFAULT_MODEL_PATH,
     DEFAULT_PROJECT_ID,
@@ -114,17 +117,35 @@ def main() -> None:
         return
 
     while True:
-        result = run_inference()
-        logging.info(
-            "Updated Firestore: %s vehicles, %s empty spaces (%s detections)",
-            result["vehicleCount"],
-            result["emptySpaceCount"],
-            len(result["detections"]),
-        )
-        logging.info("Inference device: %s", result["inferenceDevice"])
+        for camera in CAMERA_SOURCES:
+            camera_url = (
+                args.camera_url
+                if camera.camera_id == CAMERA_ID
+                else camera.stream_url
+            )
+            try:
+                result = run_inference(
+                    camera_id=camera.camera_id,
+                    camera_title=camera.title,
+                    camera_url=camera_url,
+                )
+            except CameraFrameError as error:
+                logging.error("%s", error)
+                continue
+            logging.info(
+                "Updated %s: %s vehicles, %s empty spaces (%s detections)",
+                camera.camera_id,
+                result["vehicleCount"],
+                result["emptySpaceCount"],
+                len(result["detections"]),
+            )
+            logging.info("Inference device: %s", result["inferenceDevice"])
         if args.once:
             return
-        logging.info("Next inference in %s seconds; press Ctrl+C to stop.", args.interval)
+        logging.info(
+            "Next pass over all cameras in %s seconds; press Ctrl+C to stop.",
+            args.interval,
+        )
         time.sleep(args.interval)
 
 

@@ -1,5 +1,6 @@
 import os
 import threading
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -13,9 +14,33 @@ from ultralytics import YOLO
 from detection_logic import summarize_detections
 
 
-CAMERA_ID = "opentopia-17916"
-CAMERA_TITLE = "Parking with Apartment View - Osaka"
-DEFAULT_CAMERA_URL = "http://118.243.55.168:84/VIDEO.CGI"
+@dataclass(frozen=True)
+class CameraSource:
+    camera_id: str
+    title: str
+    stream_url: str
+
+
+CAMERA_SOURCES = (
+    CameraSource(
+        camera_id="opentopia-17916",
+        title="Parking with Apartment View - Osaka",
+        stream_url="http://118.243.55.168:84/VIDEO.CGI",
+    ),
+    CameraSource(
+        camera_id="opentopia-17921",
+        title="Parking Lot - Tokyo",
+        stream_url="http://119.242.68.125:84/VIDEO.CGI",
+    ),
+    CameraSource(
+        camera_id="opentopia-17917",
+        title="Parking - Tokyo",
+        stream_url="http://125.193.245.91:84/VIDEO.CGI",
+    ),
+)
+CAMERA_ID = CAMERA_SOURCES[0].camera_id
+CAMERA_TITLE = CAMERA_SOURCES[0].title
+DEFAULT_CAMERA_URL = CAMERA_SOURCES[0].stream_url
 DEFAULT_PROJECT_ID = "pblparkopsfaiq"
 DEFAULT_MODEL_PATH = Path(__file__).parent / "models" / "best.pt"
 MAX_FRAME_BYTES = 8 * 1024 * 1024
@@ -25,6 +50,10 @@ MAX_PREVIEW_WIDTH = 640
 _model = None
 _model_lock = threading.Lock()
 _firestore_client = None
+
+
+class CameraFrameError(RuntimeError):
+    pass
 
 
 def _configured_names(environment_key: str, defaults: str) -> set[str]:
@@ -156,15 +185,24 @@ def _detect(frame: np.ndarray) -> tuple[dict, list[dict]]:
     return counts, detections[:100]
 
 
-def run_inference() -> dict:
+def run_inference(
+    camera_id: str = CAMERA_ID,
+    camera_title: str = CAMERA_TITLE,
+    camera_url: str = DEFAULT_CAMERA_URL,
+) -> dict:
     global _firestore_client
-    frame = _read_jpeg_frame(os.getenv("CAMERA_URL", DEFAULT_CAMERA_URL))
+    try:
+        frame = _read_jpeg_frame(camera_url)
+    except (OSError, RuntimeError, TimeoutError) as error:
+        raise CameraFrameError(
+            f"Could not read a frame from {camera_id}: {error}"
+        ) from error
     counts, detections = _detect(frame)
     frame_preview = _encode_frame_preview(frame)
     processed_at = datetime.now(timezone.utc)
     result = {
-        "cameraId": CAMERA_ID,
-        "cameraTitle": CAMERA_TITLE,
+        "cameraId": camera_id,
+        "cameraTitle": camera_title,
         "vehicleCount": counts["vehicleCount"],
         "emptySpaceCount": counts["emptySpaceCount"],
         "detections": detections,
@@ -190,5 +228,5 @@ def run_inference() -> dict:
                 }
             )
         _firestore_client = admin_firestore.client(app=firebase_app)
-    _firestore_client.collection("camera_inference").document(CAMERA_ID).set(result)
+    _firestore_client.collection("camera_inference").document(camera_id).set(result)
     return {**result, "processedAt": processed_at.isoformat()}

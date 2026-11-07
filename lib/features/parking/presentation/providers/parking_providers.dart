@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/di.dart';
+import '../../data/camera_feeds.dart';
+import '../../domain/entities/camera_feed.dart';
 import '../../domain/entities/camera_inference_result.dart';
 import '../../domain/entities/parking_slot.dart';
 import '../../domain/entities/parking_zone.dart';
-
-const parkingCameraId = 'opentopia-17916';
 
 // Stream of all parking zones (realtime from Firestore)
 final zonesStreamProvider = StreamProvider<List<ParkingZone>>((ref) {
@@ -42,6 +42,24 @@ final selectedZoneProvider = Provider<ParkingZone?>((ref) {
     if (zone.id == selectedId) return zone;
   }
   return zones.first;
+});
+
+class SelectedCameraId extends Notifier<String> {
+  @override
+  String build() => defaultCameraId;
+
+  void select(String cameraId) {
+    if (cameraFeeds.any((feed) => feed.id == cameraId)) state = cameraId;
+  }
+}
+
+final selectedCameraIdProvider = NotifierProvider<SelectedCameraId, String>(
+  SelectedCameraId.new,
+);
+
+final selectedCameraFeedProvider = Provider<CameraFeed>((ref) {
+  final selectedId = ref.watch(selectedCameraIdProvider);
+  return cameraFeeds.firstWhere((feed) => feed.id == selectedId);
 });
 
 // Stream of a single zone by its zone id

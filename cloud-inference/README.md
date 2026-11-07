@@ -1,20 +1,23 @@
 # Run ParkOps camera inference locally
 
-This semester-project setup runs the YOLO worker on your computer. It reads a
-frame from the one configured Opentopia camera, runs `best.pt` locally, then
-writes counts and detections to Firestore in project `pblparkopsfaiq`. The
-Flutter app listens to the `camera_inference/opentopia-17916` document.
+This semester-project setup runs the YOLO worker on your computer. It reads
+frames from three Opentopia parking cameras, runs `best.pt` locally, then
+writes counts and detections to one Firestore document per camera in project
+`pblparkopsfaiq`. The Flutter app listens to the selected camera's document.
 
 No Cloud Run service, Cloud Scheduler job, model bucket, or Google Cloud
 billing setup is needed. Your computer must remain on, connected to the
-internet, and running the Python worker for new results to appear. inference is run immediately and then every 30 seconds.
+internet, and running the Python worker for new results to appear. The worker
+processes all three cameras immediately, then starts another pass every 30
+seconds.
 
 The laptop operator starts the worker when the team asks for ML results and
 stops it with **Ctrl+C** when they are done. The app reads the shared results
 from Firestore, so teammates do not need the model, Python, or a connection to
-the laptop's local network. When a result is more than two minutes old, the
-Camera tab marks it as stale and tells users to ask the laptop operator to
-start the worker.
+the laptop's local network. Each camera result is stored in
+`camera_inference/opentopia-<camera id>`. When a result is more than two
+minutes old, the Camera tab marks it as stale and tells users to ask the laptop
+operator to start the worker.
 
 ## 1. Put the model on your computer
 
@@ -104,19 +107,47 @@ First try one frame/result:
 
 Replace the label examples with the model's actual labels. To keep the worker
 available for your teammates, run the same command without `--once`. It starts
-immediately, then processes a new frame every 30 seconds. Press **Ctrl+C** to stop.
-If the model is at the default `cloud-inference\models\best.pt`, `--model` can
-be omitted. The camera defaults to
-`http://118.243.55.168:84/VIDEO.CGI`; override it with `--camera-url` if that
-endpoint changes.
+immediately, then processes all three camera feeds every 30 seconds. Press
+**Ctrl+C** to stop. If the model is at the default
+`cloud-inference\models\best.pt`, `--model` can be omitted. The
+`--camera-url` option overrides only the 17916 feed.
 
-The worker logs the inference device after each successful frame. It should
-say `cuda:0` when using the first NVIDIA GPU.
+The worker logs the inference device after each successful camera frame. It
+should say `cuda:0` when using the first NVIDIA GPU.
 
-Once inference succeeds, the worker logs the counts and updates the Firestore
-document. Open the app's Camera tab while signed in to see those counts. A
-missing model, inaccessible camera, or Firestore permission error is reported
-in the terminal; fix the reported issue and run the worker again.
+Once inference succeeds, the worker logs the counts and updates that camera's
+Firestore document. Open the app's Camera tab while signed in and choose a
+camera to see its frame, detections, and counts. A camera that cannot provide
+a frame is reported in the terminal while the worker continues to the other
+cameras; model or Firestore errors are reported and stop the worker.
+
+The configured feeds are:
+
+| Firestore document | Camera | Frame URL |
+|---|---|---|
+| `opentopia-17916` | Parking with Apartment View - Osaka | `http://118.243.55.168:84/VIDEO.CGI` |
+| `opentopia-17921` | Parking Lot - Tokyo | `http://119.242.68.125:84/VIDEO.CGI` |
+| `opentopia-17917` | Parking - Tokyo | `http://125.193.245.91:84/VIDEO.CGI` |
+
+`--interval` controls the seconds between complete passes over all three
+cameras. `--camera-url` only overrides the 17916 feed; the other two use their
+configured URLs.
+
+## Add another camera feed
+
+Adding a camera only to `lib/features/parking/data/camera_feeds.dart` adds it
+to the app's camera selector and lets users open its Opentopia page. It does
+not start inference for that feed. The app looks for a Firestore document
+whose ID matches the selected feed ID, so until the worker publishes that
+document the app shows that it is waiting for the laptop worker.
+
+To enable inference for a new camera, add the same camera ID, title, and
+direct JPEG/MJPEG frame URL to `CAMERA_SOURCES` in
+`cloud-inference/main.py`, as well as an app entry in
+`lib/features/parking/data/camera_feeds.dart`. The worker writes results to
+`camera_inference/<camera id>`, so both entries must use exactly the same ID.
+Confirm the direct frame URL returns a JPEG frame, then stop and restart the
+worker; it reads `CAMERA_SOURCES` when it starts.
 
 ## Limits
 

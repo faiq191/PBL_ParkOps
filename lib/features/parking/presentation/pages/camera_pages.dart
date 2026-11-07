@@ -4,20 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../../core/failures.dart';
 import '../../../../routes.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_bottom_nav.dart';
 import '../../../../widgets/parkops_app_bar.dart';
+import '../../data/camera_feeds.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
+import '../../domain/entities/camera_feed.dart';
 import '../../domain/entities/camera_inference_result.dart';
-import '../../domain/entities/parking_zone.dart';
 import '../providers/parking_providers.dart';
 import '../widgets/lot_chips.dart';
-
-final _cameraPageUri = Uri.parse(
-  'https://www.opentopia.com/webcam/17916?viewmode=livevideo',
-);
 
 class CameraPages extends ConsumerStatefulWidget {
   const CameraPages({super.key});
@@ -55,9 +51,9 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
       );
   }
 
-  Future<void> _openCameraPage() async {
+  Future<void> _openCameraPage(CameraFeed feed) async {
     final opened = await launchUrl(
-      _cameraPageUri,
+      feed.pageUri,
       mode: LaunchMode.externalApplication,
     );
     if (!opened && mounted) {
@@ -69,8 +65,8 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
 
   @override
   Widget build(BuildContext context) {
-    final zonesAsync = ref.watch(zonesStreamProvider);
-    final inference = ref.watch(cameraInferenceStreamProvider(parkingCameraId));
+    final feed = ref.watch(selectedCameraFeedProvider);
+    final inference = ref.watch(cameraInferenceStreamProvider(feed.id));
     final overlayEnabled = ref.watch(cameraOverlayPreferenceProvider);
 
     return Scaffold(
@@ -79,28 +75,13 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
         section: 'Camera',
         title: 'Parking Lot Camera',
       ),
-      body: zonesAsync.when(
-        loading: () =>
-            const Scaffold(body: Center(child: CircularProgressIndicator())),
-        error: (error, _) => Center(
-          child: Text(
-            error is Failure ? error.message : 'Could not load parking zones',
-          ),
-        ),
-        data: (_) {
-          final zone = ref.watch(selectedZoneProvider);
-          if (zone == null) {
-            return const Center(child: Text('No parking zones yet'));
-          }
-          return _buildBody(zone, overlayEnabled, inference);
-        },
-      ),
+      body: _buildBody(feed, overlayEnabled, inference),
       bottomNavigationBar: const AppBottomNav(currentIndex: 1),
     );
   }
 
   Widget _buildBody(
-    ParkingZone zone,
+    CameraFeed feed,
     bool overlayEnabled,
     AsyncValue<CameraInferenceResult?> inference,
   ) {
@@ -114,7 +95,7 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
       children: [
-        _cameraCard(zone, overlayEnabled, inference),
+        _cameraCard(feed, overlayEnabled, inference),
         const SizedBox(height: 14),
         Row(
           children: [
@@ -152,11 +133,10 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
   }
 
   Widget _cameraCard(
-    ParkingZone zone,
+    CameraFeed feed,
     bool overlayEnabled,
     AsyncValue<CameraInferenceResult?> inference,
   ) {
-    final zones = ref.watch(zonesListProvider);
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -179,7 +159,7 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
                 Expanded(
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
-                      value: zone.id,
+                      value: feed.id,
                       isExpanded: true,
                       isDense: true,
                       borderRadius: BorderRadius.circular(10),
@@ -188,11 +168,11 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
                         color: AppColors.navy,
                       ),
                       items: [
-                        for (final item in zones)
+                        for (final item in cameraFeeds)
                           DropdownMenuItem(
                             value: item.id,
                             child: Text(
-                              '${item.cameraImageUrl}  -  ${item.name}',
+                              item.title,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 fontSize: 14,
@@ -204,7 +184,9 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
                       ],
                       onChanged: (id) {
                         if (id != null) {
-                          ref.read(selectedZoneIdProvider.notifier).select(id);
+                          ref
+                              .read(selectedCameraIdProvider.notifier)
+                              .select(id);
                         }
                       },
                     ),
@@ -212,7 +194,7 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
                 ),
                 IconButton(
                   tooltip: 'Open camera feed',
-                  onPressed: _openCameraPage,
+                  onPressed: () => _openCameraPage(feed),
                   icon: const Icon(Icons.open_in_new, color: AppColors.navy),
                 ),
               ],
