@@ -27,6 +27,10 @@ class AdminGuard extends ConsumerWidget {
         message: 'Check your connection and try again.',
       ),
       data: (user) {
+        debugPrint(
+          'AdminGuard: email=${user?.email} role=${user?.role} '
+          'isAdmin=${user?.isAdmin}',
+        );
         if (user == null) {
           return _Notice(
             icon: Icons.lock_outline_rounded,
