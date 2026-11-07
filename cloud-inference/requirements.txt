@@ -1,0 +1,7 @@
+Flask
+firebase-admin
+gunicorn
+google-cloud-storage
+numpy
+opencv-python-headless
+ultralytics
