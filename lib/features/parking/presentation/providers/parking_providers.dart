@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/di.dart';
+import '../../domain/entities/camera_inference_result.dart';
 import '../../domain/entities/parking_slot.dart';
 import '../../domain/entities/parking_zone.dart';
 
@@ -35,8 +36,9 @@ class SelectedZoneId extends Notifier<String?> {
   void select(String zoneId) => state = zoneId;
 }
 
-final selectedZoneIdProvider =
-    NotifierProvider<SelectedZoneId, String?>(SelectedZoneId.new);
+final selectedZoneIdProvider = NotifierProvider<SelectedZoneId, String?>(
+  SelectedZoneId.new,
+);
 
 /// The zone the Home/Camera/Map tabs are currently focused on: the selected
 /// zone if it still exists, otherwise the first zone as a sensible default.
@@ -51,13 +53,24 @@ final selectedZoneProvider = Provider<ParkingZone?>((ref) {
 });
 
 // Stream of a single zone by its zone id
-final zoneStreamProvider =
-    StreamProvider.family<ParkingZone, String>((ref, zoneId) {
+final zoneStreamProvider = StreamProvider.family<ParkingZone, String>((
+  ref,
+  zoneId,
+) {
   return ref.watch(parkingRepositoryProvider).watchZone(zoneId);
 });
 
 // Stream of parking slots for a given zone
-final slotsStreamProvider =
-    StreamProvider.family<List<ParkingSlot>, String>((ref, zoneId) {
+final slotsStreamProvider = StreamProvider.family<List<ParkingSlot>, String>((
+  ref,
+  zoneId,
+) {
   return ref.watch(parkingRepositoryProvider).watchSlots(zoneId);
 });
+
+final cameraInferenceStreamProvider =
+    StreamProvider.family<CameraInferenceResult?, String>((ref, cameraId) {
+      return ref
+          .watch(parkingRepositoryProvider)
+          .watchCameraInference(cameraId);
+    });
