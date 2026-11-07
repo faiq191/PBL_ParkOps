@@ -1,24 +1,78 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/failures.dart';
+import '../../../../routes.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_bottom_nav.dart';
 import '../../../../widgets/parkops_app_bar.dart';
+import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../domain/entities/camera_inference_result.dart';
+import '../../domain/entities/parking_zone.dart';
 import '../providers/parking_providers.dart';
+import '../widgets/lot_chips.dart';
 
 const _cameraId = 'opentopia-17916';
 final _cameraPageUri = Uri.parse(
   'https://www.opentopia.com/webcam/17916?viewmode=livevideo',
 );
 
-class CameraPages extends ConsumerWidget {
+class CameraPages extends ConsumerStatefulWidget {
   const CameraPages({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CameraPages> createState() => _CameraPagesState();
+}
+
+class _CameraPagesState extends ConsumerState<CameraPages> {
+  Timer? _statusRefreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _statusRefreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _statusRefreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _setOverlay(bool enabled) async {
+    final saved = await ref
+        .read(cameraOverlayPreferenceProvider.notifier)
+        .setEnabled(enabled);
+    if (!mounted || saved) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('Could not save the camera preference.')),
+      );
+  }
+
+  Future<void> _openCameraPage() async {
+    final opened = await launchUrl(
+      _cameraPageUri,
+      mode: LaunchMode.externalApplication,
+    );
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the camera feed.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final zonesAsync = ref.watch(zonesStreamProvider);
     final inference = ref.watch(cameraInferenceStreamProvider(_cameraId));
+    final overlayEnabled = ref.watch(cameraOverlayPreferenceProvider);
 
     return Scaffold(
       backgroundColor: AppColors.paper,
@@ -26,23 +80,187 @@ class CameraPages extends ConsumerWidget {
         section: 'Camera',
         title: 'Parking Lot Camera',
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
-        children: [
-          _cameraCard(context),
-          const SizedBox(height: 16),
-          _inferenceResults(inference),
-          const SizedBox(height: 14),
-          const _ProcessingNote(),
-        ],
+      body: zonesAsync.when(
+        loading: () =>
+            const Scaffold(body: Center(child: CircularProgressIndicator())),
+        error: (error, _) => Center(
+          child: Text(
+            error is Failure ? error.message : 'Could not load parking zones',
+          ),
+        ),
+        data: (_) {
+          final zone = ref.watch(selectedZoneProvider);
+          if (zone == null) {
+            return const Center(child: Text('No parking zones yet'));
+          }
+          return _buildBody(zone, overlayEnabled, inference);
+        },
       ),
       bottomNavigationBar: const AppBottomNav(currentIndex: 1),
     );
   }
 
-  Widget _cameraCard(BuildContext context) {
+  Widget _buildBody(
+    ParkingZone zone,
+    bool overlayEnabled,
+    AsyncValue<CameraInferenceResult?> inference,
+  ) {
+    final result = inference.asData?.value;
+    final available = result?.emptySpaceCount;
+    final occupied = result?.vehicleCount;
+    final total = available == null || occupied == null
+        ? null
+        : available + occupied;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+      children: [
+        _cameraCard(zone, overlayEnabled, inference),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+              child: StatCard(
+                value: available?.toString() ?? '--',
+                label: 'Available',
+                color: AppColors.teal,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: StatCard(
+                value: occupied?.toString() ?? '--',
+                label: 'Occupied',
+                color: AppColors.full,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: StatCard(
+                value: total?.toString() ?? '--',
+                label: 'Total bays',
+                color: AppColors.navy,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _infoCard(result, inference),
+        const SizedBox(height: 16),
+        _mapButton(),
+      ],
+    );
+  }
+
+  Widget _cameraCard(
+    ParkingZone zone,
+    bool overlayEnabled,
+    AsyncValue<CameraInferenceResult?> inference,
+  ) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 6, 8),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.videocam_outlined,
+                  color: AppColors.navy,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'CAM 01  -  ${zone.name}',
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.navy,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Open camera feed',
+                  onPressed: _openCameraPage,
+                  icon: const Icon(Icons.open_in_new, color: AppColors.navy),
+                ),
+              ],
+            ),
+          ),
+          _InferenceCameraFeed(
+            inference: inference,
+            showOverlay: overlayEnabled,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            child: Row(
+              children: [
+                const Text(
+                  'Detection overlay',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.navy,
+                  ),
+                ),
+                const Spacer(),
+                Switch(
+                  value: overlayEnabled,
+                  activeTrackColor: AppColors.navy,
+                  onChanged: _setOverlay,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoCard(
+    CameraInferenceResult? result,
+    AsyncValue<CameraInferenceResult?> inference,
+  ) {
+    final processedAt = result?.processedAt;
+    final age = processedAt == null
+        ? null
+        : DateTime.now().toUtc().difference(processedAt.toUtc());
+    final isRecent = age != null && age <= const Duration(minutes: 2);
+
+    final String heading;
+    final String detail;
+    final IconData icon;
+
+    if (inference.hasError) {
+      heading = 'Could not load detection data';
+      detail = 'Check your connection and Firestore access, then try again.';
+      icon = Icons.error_outline;
+    } else if (result == null) {
+      heading = 'Waiting for camera data';
+      detail = 'Ask the laptop operator to start the ML worker.';
+      icon = Icons.sync;
+    } else if (!isRecent) {
+      heading = 'Camera data is out of date';
+      detail = 'Ask the laptop operator to start or check the ML worker.';
+      icon = Icons.sync;
+    } else {
+      heading = 'Camera data updates automatically';
+      detail =
+          'Counts and the preview refresh whenever the laptop publishes a '
+          'new result.';
+      icon = Icons.sync;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -50,51 +268,31 @@ class CameraPages extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 190,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.navy,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.videocam, size: 44, color: Colors.white),
-                SizedBox(height: 8),
-                Text(
-                  'Osaka, Japan',
-                  style: TextStyle(color: Colors.white, fontSize: 14),
+          Row(
+            children: [
+              Icon(icon, color: AppColors.navy, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  heading,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.navy,
+                  ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          const Text(
-            'Parking with Apartment View',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.navy,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Public camera feed from Opentopia',
-            style: TextStyle(fontSize: 12, color: AppColors.mist),
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () => _openCameraPage(context),
-              icon: const Icon(Icons.open_in_new),
-              label: const Text('Open live feed'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.navy,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 13),
               ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            processedAt == null
+                ? detail
+                : '$detail Last update: ${_formatTime(processedAt)}.',
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.mist,
+              height: 1.4,
             ),
           ),
         ],
@@ -102,168 +300,194 @@ class CameraPages extends ConsumerWidget {
     );
   }
 
-  Future<void> _openCameraPage(BuildContext context) async {
-    final opened = await launchUrl(
-      _cameraPageUri,
-      mode: LaunchMode.externalApplication,
+  Widget _mapButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton(
+        onPressed: () => Navigator.of(context).pushReplacementNamed(Routes.map),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.navy,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: const Row(
+          children: [
+            SizedBox(width: 6),
+            Text(
+              'Find a space on the map',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+            ),
+            Spacer(),
+            Icon(Icons.map_outlined, size: 20),
+            SizedBox(width: 6),
+          ],
+        ),
+      ),
     );
-    if (!opened && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open the camera feed.')),
+  }
+}
+
+class _InferenceCameraFeed extends StatelessWidget {
+  const _InferenceCameraFeed({
+    required this.inference,
+    required this.showOverlay,
+  });
+
+  final AsyncValue<CameraInferenceResult?> inference;
+  final bool showOverlay;
+
+  @override
+  Widget build(BuildContext context) {
+    final result = inference.asData?.value;
+    final image = result?.framePreview;
+
+    return AspectRatio(
+      aspectRatio: 4 / 3,
+      child: ColoredBox(
+        color: const Color(0xFF4A4F55),
+        child: image == null
+            ? const Center(
+                child: Text(
+                  'Waiting for the laptop ML worker',
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              )
+            : Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.memory(
+                    image,
+                    key: ValueKey(result?.processedAt),
+                    fit: BoxFit.contain,
+                    gaplessPlayback: false,
+                    errorBuilder: (context, error, stackTrace) => const Center(
+                      child: Text(
+                        'Could not display the camera frame',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                    ),
+                  ),
+                  if (showOverlay &&
+                      result != null &&
+                      result.frameWidth > 0 &&
+                      result.frameHeight > 0)
+                    CustomPaint(
+                      painter: _DetectionOverlayPainter(
+                        detections: result.detections,
+                        frameWidth: result.frameWidth,
+                        frameHeight: result.frameHeight,
+                      ),
+                    ),
+                  Positioned(
+                    top: 10,
+                    left: 10,
+                    child: _feedPill(
+                      Text(
+                        result?.processedAt == null
+                            ? 'WAITING FOR ML'
+                            : 'UPDATED ${_formatTime(result!.processedAt!)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+class _DetectionOverlayPainter extends CustomPainter {
+  const _DetectionOverlayPainter({
+    required this.detections,
+    required this.frameWidth,
+    required this.frameHeight,
+  });
+
+  final List<CameraDetection> detections;
+  final int frameWidth;
+  final int frameHeight;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (frameWidth <= 0 || frameHeight <= 0) return;
+    final scale = (size.width / frameWidth).clamp(
+      0.0,
+      size.height / frameHeight,
+    );
+    final imageWidth = frameWidth * scale;
+    final imageHeight = frameHeight * scale;
+    final offsetX = (size.width - imageWidth) / 2;
+    final offsetY = (size.height - imageHeight) / 2;
+
+    for (final detection in detections) {
+      if (detection.box.length != 4) continue;
+      final rect = Rect.fromLTRB(
+        offsetX + detection.box[0] * scale,
+        offsetY + detection.box[1] * scale,
+        offsetX + detection.box[2] * scale,
+        offsetY + detection.box[3] * scale,
       );
+      final color = detection.className.toLowerCase() == 'empty'
+          ? const Color(0xFF7FD8C8)
+          : const Color(0xFFF0B27A);
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+
+      final label =
+          '${detection.className} '
+          '${(detection.confidence * 100).round()}%';
+      final text = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: size.width);
+      final labelTop = (rect.top - text.height - 4).clamp(0.0, size.height);
+      final labelRect = Rect.fromLTWH(
+        rect.left,
+        labelTop,
+        text.width + 8,
+        text.height + 4,
+      );
+      canvas.drawRect(labelRect, Paint()..color = color);
+      text.paint(canvas, Offset(labelRect.left + 4, labelRect.top + 2));
     }
   }
 
-  Widget _inferenceResults(AsyncValue<CameraInferenceResult?> inference) {
-    return inference.when(
-      loading: () => const _ResultMessage(
-        icon: Icons.hourglass_empty,
-        message: 'Waiting for the first cloud inference result.',
-      ),
-      error: (error, _) => _ResultMessage(
-        icon: Icons.error_outline,
-        message: 'Could not load camera results: $error',
-      ),
-      data: (result) {
-        if (result == null) {
-          return const _ResultMessage(
-            icon: Icons.cloud_queue,
-            message: 'No inference result yet. The cloud worker runs once per minute.',
-          );
-        }
-        return _resultCards(result);
-      },
-    );
-  }
-
-  Widget _resultCards(CameraInferenceResult result) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(bottom: 10, left: 2),
-          child: Text(
-            'Latest AI detection',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.navy,
-            ),
-          ),
-        ),
-        Row(
-          children: [
-            Expanded(
-              child: _CountCard(
-                value: result.vehicleCount,
-                label: 'Vehicles detected',
-                color: AppColors.full,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _CountCard(
-                value: result.emptySpaceCount,
-                label: 'Empty spaces detected',
-                color: AppColors.teal,
-              ),
-            ),
-          ],
-        ),
-        if (result.processedAt != null) ...[
-          const SizedBox(height: 8),
-          Text(
-            'Last processed ${_formatTime(result.processedAt!)}',
-            style: const TextStyle(fontSize: 11, color: AppColors.mist),
-          ),
-        ],
-      ],
-    );
-  }
+  @override
+  bool shouldRepaint(_DetectionOverlayPainter oldDelegate) =>
+      oldDelegate.detections != detections ||
+      oldDelegate.frameWidth != frameWidth ||
+      oldDelegate.frameHeight != frameHeight;
 }
 
-class _CountCard extends StatelessWidget {
-  const _CountCard({
-    required this.value,
-    required this.label,
-    required this.color,
-  });
-
-  final int value;
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '$value',
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 11, color: AppColors.navy),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ResultMessage extends StatelessWidget {
-  const _ResultMessage({required this.icon, required this.message});
-
-  final IconData icon;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.navy),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(fontSize: 12, color: AppColors.navy),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProcessingNote extends StatelessWidget {
-  const _ProcessingNote();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Text(
-      'Counts are detections from the latest sampled frame, not confirmed '
-      'availability for individual parking bays.',
-      style: TextStyle(fontSize: 11, color: AppColors.mist, height: 1.4),
-    );
-  }
+Widget _feedPill(Widget child) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    decoration: BoxDecoration(
+      color: const Color(0x8C000000),
+      borderRadius: BorderRadius.circular(999),
+    ),
+    child: child,
+  );
 }
 
 String _formatTime(DateTime time) {
