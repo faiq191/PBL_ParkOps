@@ -7,8 +7,7 @@ Flutter app listens to the `camera_inference/opentopia-17916` document.
 
 No Cloud Run service, Cloud Scheduler job, model bucket, or Google Cloud
 billing setup is needed. Your computer must remain on, connected to the
-internet, and running the Python worker for new results to appear. Inference is
-run immediately and then once per minute.
+internet, and running the Python worker for new results to appear. inference is run immediately and then every 30 seconds.
 
 The laptop operator starts the worker when the team asks for ML results and
 stops it with **Ctrl+C** when they are done. The app reads the shared results
@@ -105,7 +104,7 @@ First try one frame/result:
 
 Replace the label examples with the model's actual labels. To keep the worker
 available for your teammates, run the same command without `--once`. It starts
-immediately, then processes a new frame every minute. Press **Ctrl+C** to stop.
+immediately, then processes a new frame every 30 seconds. Press **Ctrl+C** to stop.
 If the model is at the default `cloud-inference\models\best.pt`, `--model` can
 be omitted. The camera defaults to
 `http://118.243.55.168:84/VIDEO.CGI`; override it with `--camera-url` if that

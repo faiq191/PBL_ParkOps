@@ -6,12 +6,11 @@ import '../../../../routes.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_bottom_nav.dart';
 import '../../../../widgets/parkops_app_bar.dart';
+import '../../domain/entities/camera_inference_result.dart';
 import '../../domain/entities/parking_zone.dart';
 import '../providers/parking_providers.dart';
-import '../widgets/zone_status_color.dart';
 
-/// UI only: lots and counts are placeholders (demo fallback lives in
-/// features/parking/data/seed_zones.dart until Firestore is seeded).
+/// Parking zones still use demo metadata when Firestore has not been seeded.
 class HomepagePages extends ConsumerWidget {
   const HomepagePages({super.key});
 
@@ -26,7 +25,9 @@ class HomepagePages extends ConsumerWidget {
         loading: () =>
             const Scaffold(body: Center(child: CircularProgressIndicator())),
         error: (e, _) => Center(
-          child: Text(e is Failure ? e.message : 'Could not load parking zones'),
+          child: Text(
+            e is Failure ? e.message : 'Could not load parking zones',
+          ),
         ),
         data: (_) => const _HomepageBody(),
       ),
@@ -42,26 +43,23 @@ class _HomepageBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Aggregate free and total slots across all zones for the hero card
-    final totals = ref.watch(zoneTotalsProvider);
     final zones = ref.watch(zonesListProvider);
-    final selectedZone = ref.watch(selectedZoneProvider);
     final selectedId = ref.watch(selectedZoneIdProvider);
+    final inference = ref.watch(cameraInferenceStreamProvider(parkingCameraId));
 
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
-        _HeroCard(available: totals.available, total: totals.total),
+        _LiveCameraSummary(inference: inference),
         const SizedBox(height: 18),
-        if (selectedZone != null) ...[
-          _LotStatusCard(zone: selectedZone),
-          const SizedBox(height: 18),
-        ],
-        const Text('Explore the lot',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.navy)),
+        const Text(
+          'Explore the lot',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.navy,
+          ),
+        ),
         const SizedBox(height: 10),
         Row(
           children: [
@@ -87,11 +85,14 @@ class _HomepageBody extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 18),
-        const Text('Parking lots',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.navy)),
+        const Text(
+          'Parking lots',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.navy,
+          ),
+        ),
         const SizedBox(height: 10),
         for (final zone in zones)
           _LotRow(
@@ -106,13 +107,18 @@ class _HomepageBody extends ConsumerWidget {
   }
 }
 
-class _HeroCard extends StatelessWidget {
-  final int available;
-  final int total;
-  const _HeroCard({required this.available, required this.total});
+class _LiveCameraSummary extends StatelessWidget {
+  const _LiveCameraSummary({required this.inference});
+
+  final AsyncValue<CameraInferenceResult?> inference;
 
   @override
   Widget build(BuildContext context) {
+    final result = inference.asData?.value;
+    final detectionCount = result == null
+        ? null
+        : result.vehicleCount + result.emptySpaceCount;
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -122,128 +128,92 @@ class _HeroCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Available slots across all lots',
-              style: TextStyle(color: AppColors.mist, fontSize: 12)),
+          const Text(
+            'Latest camera detections',
+            style: TextStyle(color: AppColors.mist, fontSize: 12),
+          ),
           const SizedBox(height: 4),
-          Text('$available',
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 38,
-                  fontWeight: FontWeight.w800,
-                  height: 1)),
-          Text('out of $total total slots',
-              style: const TextStyle(color: AppColors.mist, fontSize: 12)),
+          Text(
+            result == null ? '--' : '$detectionCount',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 38,
+              fontWeight: FontWeight.w800,
+              height: 1,
+            ),
+          ),
+          const Text(
+            'detections in the latest frame',
+            style: TextStyle(color: AppColors.mist, fontSize: 12),
+          ),
           const SizedBox(height: 10),
-          const Row(
+          Row(
             children: [
-              Icon(Icons.circle, size: 6, color: AppColors.amber),
-              SizedBox(width: 6),
-              Text('Updated just now',
-                  style: TextStyle(color: AppColors.amber, fontSize: 10)),
+              const Icon(Icons.circle, size: 6, color: AppColors.amber),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  _statusText(result),
+                  style: const TextStyle(color: AppColors.amber, fontSize: 10),
+                ),
+              ),
             ],
           ),
+          if (result != null) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _HomeMetric(
+                    value: '${result.vehicleCount}',
+                    label: 'Vehicles',
+                  ),
+                ),
+                Expanded(
+                  child: _HomeMetric(
+                    value: '${result.emptySpaceCount}',
+                    label: 'Empty spaces',
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
   }
+
+  String _statusText(CameraInferenceResult? result) {
+    if (inference.hasError) return 'Could not load camera data';
+    if (result == null) return 'Waiting for the laptop ML worker';
+    return 'Last update: ${_formatHomeTime(result.processedAt)}';
+  }
 }
 
-class _LotStatusCard extends StatelessWidget {
-  final ParkingZone zone;
-  const _LotStatusCard({required this.zone});
+class _HomeMetric extends StatelessWidget {
+  const _HomeMetric({required this.value, required this.label});
+
+  final String value;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(zone.name,
-                        style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.navy)),
-                    const SizedBox(height: 2),
-                    Text(zone.location,
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.mist)),
-                  ],
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.tealSoft,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.circle, size: 6, color: AppColors.teal),
-                    SizedBox(width: 6),
-                    Text('1 min delay',
-                        style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.teal)),
-                  ],
-                ),
-              ),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
           ),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text('${zone.availableSlots}',
-                  style: const TextStyle(
-                      fontSize: 52,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.navy,
-                      height: 1)),
-              const SizedBox(width: 8),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text('/ ${zone.totalSlots}',
-                    style: const TextStyle(
-                        fontSize: 18, color: AppColors.mist)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Text('spaces available in latest feed',
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.teal)),
-          const SizedBox(height: 14),
-          const Divider(height: 1, color: AppColors.line),
-          const SizedBox(height: 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('${zone.occupiedSlots} occupied',
-                  style:
-                      const TextStyle(fontSize: 12, color: AppColors.mist)),
-              const Text('Camera delayed by 1 min',
-                  style: TextStyle(fontSize: 12, color: AppColors.mist)),
-            ],
-          ),
-        ],
-      ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.mist, fontSize: 11),
+        ),
+      ],
     );
   }
 }
@@ -272,8 +242,7 @@ class _LotRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border(
-                  left: BorderSide(color: zone.status.color, width: 4)),
+              border: Border.all(color: AppColors.line),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -282,28 +251,41 @@ class _LotRow extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(zone.name,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                              color: AppColors.navy)),
-                      Text(zone.location,
-                          style: const TextStyle(
-                              fontSize: 10, color: Color(0xFF8892A0))),
+                      Text(
+                        zone.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: AppColors.navy,
+                        ),
+                      ),
+                      Text(
+                        zone.location,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Color(0xFF8892A0),
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 if (selected)
                   const Padding(
                     padding: EdgeInsets.only(right: 10),
-                    child: Icon(Icons.check_circle,
-                        size: 16, color: AppColors.navy),
+                    child: Icon(
+                      Icons.check_circle,
+                      size: 16,
+                      color: AppColors.navy,
+                    ),
                   ),
-                Text('${zone.availableSlots}/${zone.totalSlots}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 15,
-                        color: AppColors.navy)),
+                Text(
+                  zone.cameraImageUrl,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    color: AppColors.navy,
+                  ),
+                ),
               ],
             ),
           ),
@@ -342,24 +324,39 @@ class _ExploreCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Icon(icon, color: AppColors.navy, size: 22),
-                  const Icon(Icons.north_east,
-                      color: AppColors.navy, size: 16),
+                  const Icon(Icons.north_east, color: AppColors.navy, size: 16),
                 ],
               ),
               const SizedBox(height: 16),
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.navy)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.navy,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(subtitle,
-                  style:
-                      const TextStyle(fontSize: 11, color: AppColors.mist)),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 11, color: AppColors.mist),
+              ),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+String _formatHomeTime(DateTime? time) {
+  if (time == null) return 'Update time unavailable';
+  final local = time.toLocal();
+  final date =
+      '${local.year}-${local.month.toString().padLeft(2, '0')}-'
+      '${local.day.toString().padLeft(2, '0')}';
+  final hour = local.hour.toString().padLeft(2, '0');
+  final minute = local.minute.toString().padLeft(2, '0');
+  final second = local.second.toString().padLeft(2, '0');
+  return '$date $hour:$minute:$second';
 }

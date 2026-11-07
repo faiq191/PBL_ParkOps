@@ -50,8 +50,8 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument(
         "--interval",
         type=_positive_integer,
-        default=60,
-        help="Seconds between inferences (default: 60)",
+        default=30,
+        help="Seconds between inferences (default: 30)",
     )
     parser.add_argument(
         "--confidence",

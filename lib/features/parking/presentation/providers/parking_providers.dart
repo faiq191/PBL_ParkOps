@@ -5,6 +5,8 @@ import '../../domain/entities/camera_inference_result.dart';
 import '../../domain/entities/parking_slot.dart';
 import '../../domain/entities/parking_zone.dart';
 
+const parkingCameraId = 'opentopia-17916';
+
 // Stream of all parking zones (realtime from Firestore)
 final zonesStreamProvider = StreamProvider<List<ParkingZone>>((ref) {
   return ref.watch(parkingRepositoryProvider).watchZones();
@@ -14,16 +16,6 @@ final zonesStreamProvider = StreamProvider<List<ParkingZone>>((ref) {
 // widgets that render lists and already handle the empty case.
 final zonesListProvider = Provider<List<ParkingZone>>((ref) {
   return ref.watch(zonesStreamProvider).value ?? const <ParkingZone>[];
-});
-
-// Aggregate free and total slots across all zones for the hero card.
-// Moved out of Homepage.build (Grep 2 fix: no business logic in build()).
-final zoneTotalsProvider = Provider<({int available, int total})>((ref) {
-  final zones = ref.watch(zonesListProvider);
-  return (
-    available: zones.fold<int>(0, (acc, zone) => acc + zone.availableSlots),
-    total: zones.fold<int>(0, (acc, zone) => acc + zone.totalSlots),
-  );
 });
 
 /// Lot currently picked. Shared by the Home, Camera and Map tabs.

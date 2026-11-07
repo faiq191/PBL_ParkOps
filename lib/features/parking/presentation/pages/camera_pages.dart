@@ -15,7 +15,6 @@ import '../../domain/entities/parking_zone.dart';
 import '../providers/parking_providers.dart';
 import '../widgets/lot_chips.dart';
 
-const _cameraId = 'opentopia-17916';
 final _cameraPageUri = Uri.parse(
   'https://www.opentopia.com/webcam/17916?viewmode=livevideo',
 );
@@ -71,7 +70,7 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
   @override
   Widget build(BuildContext context) {
     final zonesAsync = ref.watch(zonesStreamProvider);
-    final inference = ref.watch(cameraInferenceStreamProvider(_cameraId));
+    final inference = ref.watch(cameraInferenceStreamProvider(parkingCameraId));
     final overlayEnabled = ref.watch(cameraOverlayPreferenceProvider);
 
     return Scaffold(
@@ -157,6 +156,7 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
     bool overlayEnabled,
     AsyncValue<CameraInferenceResult?> inference,
   ) {
+    final zones = ref.watch(zonesListProvider);
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -177,13 +177,36 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    'CAM 01  -  ${zone.name}',
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.navy,
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: zone.id,
+                      isExpanded: true,
+                      isDense: true,
+                      borderRadius: BorderRadius.circular(10),
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down,
+                        color: AppColors.navy,
+                      ),
+                      items: [
+                        for (final item in zones)
+                          DropdownMenuItem(
+                            value: item.id,
+                            child: Text(
+                              '${item.cameraImageUrl}  -  ${item.name}',
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.navy,
+                              ),
+                            ),
+                          ),
+                      ],
+                      onChanged: (id) {
+                        if (id != null) {
+                          ref.read(selectedZoneIdProvider.notifier).select(id);
+                        }
+                      },
                     ),
                   ),
                 ),
@@ -497,5 +520,6 @@ String _formatTime(DateTime time) {
       '${local.day.toString().padLeft(2, '0')}';
   final hour = local.hour.toString().padLeft(2, '0');
   final minute = local.minute.toString().padLeft(2, '0');
-  return '$date $hour:$minute';
+  final second = local.second.toString().padLeft(2, '0');
+  return '$date $hour:$minute:$second';
 }
