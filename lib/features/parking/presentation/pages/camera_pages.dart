@@ -13,6 +13,7 @@ import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../domain/entities/camera_feed.dart';
 import '../../domain/entities/camera_inference_result.dart';
 import '../providers/parking_providers.dart';
+import '../widgets/format_time.dart';
 import '../widgets/lot_chips.dart';
 
 class CameraPages extends ConsumerStatefulWidget {
@@ -293,7 +294,7 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
           Text(
             processedAt == null
                 ? detail
-                : '$detail Last update: ${_formatTime(processedAt)}.',
+                : '$detail Last update: ${formatTimestamp(processedAt)}.',
             style: const TextStyle(
               fontSize: 11,
               color: AppColors.mist,
@@ -394,7 +395,7 @@ class _InferenceCameraFeed extends StatelessWidget {
                       Text(
                         result?.processedAt == null
                             ? 'WAITING FOR ML'
-                            : 'UPDATED ${_formatTime(result!.processedAt!)}',
+                            : 'UPDATED ${formatTimestamp(result!.processedAt!)}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 9,
@@ -493,15 +494,4 @@ Widget _feedPill(Widget child) {
     ),
     child: child,
   );
-}
-
-String _formatTime(DateTime time) {
-  final local = time.toLocal();
-  final date =
-      '${local.year}-${local.month.toString().padLeft(2, '0')}-'
-      '${local.day.toString().padLeft(2, '0')}';
-  final hour = local.hour.toString().padLeft(2, '0');
-  final minute = local.minute.toString().padLeft(2, '0');
-  final second = local.second.toString().padLeft(2, '0');
-  return '$date $hour:$minute:$second';
 }
