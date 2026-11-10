@@ -3,22 +3,29 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../../theme/app_colors.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class FillTheReportPage extends StatefulWidget {
+import '../../../../theme/app_colors.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../parking/domain/entities/parking_zone.dart';
+import '../../../parking/presentation/providers/parking_providers.dart';
+import '../providers/report_providers.dart';
+
+class FillTheReportPage extends ConsumerStatefulWidget {
   const FillTheReportPage({super.key});
 
   @override
-  State<FillTheReportPage> createState() => _FillTheReportPageState();
+  ConsumerState<FillTheReportPage> createState() =>
+      _FillTheReportPageState();
 }
 
-class _FillTheReportPageState extends State<FillTheReportPage> {
+class _FillTheReportPageState extends ConsumerState<FillTheReportPage> {
   final _formKey = GlobalKey<FormState>();
-  final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
   final ImagePicker _imagePicker = ImagePicker();
 
   String? _reportType;
+  String? _zoneId;
   XFile? _selectedImage;
   bool _isSubmitting = false;
 
@@ -29,7 +36,6 @@ class _FillTheReportPageState extends State<FillTheReportPage> {
 
   @override
   void dispose() {
-    _locationController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
@@ -78,26 +84,68 @@ class _FillTheReportPageState extends State<FillTheReportPage> {
       return;
     }
 
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    final user = ref.read(authStateProvider).value;
+    if (user == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Please sign in to submit a report.')),
+      );
+      return;
+    }
+
+    ParkingZone? zone;
+    for (final z in ref.read(zonesListProvider)) {
+      if (z.id == _zoneId) zone = z;
+    }
+    if (zone == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Please select the parking lot.')),
+      );
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
     });
 
-    // TODO: Connect this form to the report backend/database.
-    await Future<void>.delayed(const Duration(milliseconds: 300));
+    try {
+      await ref.read(reportRepositoryProvider).submit(
+            uid: user.uid,
+            email: user.email,
+            zoneId: zone.id,
+            zoneName: zone.name,
+            type: _reportType!,
+            description: _descriptionController.text.trim(),
+          );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+      });
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Could not send the report. Please try again.'),
+        ),
+      );
+      return;
+    }
 
     if (!mounted) return;
-
     setState(() {
       _isSubmitting = false;
     });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+    messenger.showSnackBar(
+      SnackBar(
         content: Text(
-          'Form validated. Report submission is not connected yet.',
+          _selectedImage == null
+              ? 'Report sent. Thank you!'
+              : 'Report sent. Photo attachments are not uploaded yet.',
         ),
       ),
     );
+    navigator.pop();
   }
 
   InputDecoration _inputDecoration({
@@ -262,21 +310,49 @@ class _FillTheReportPageState extends State<FillTheReportPage> {
 
               // Parking location
               _sectionLabel('Parking Location', required: true),
-              TextFormField(
-                controller: _locationController,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: _inputDecoration(
-                  hintText: 'e.g. Parking Area A, Level 1',
-                  prefixIcon: const Icon(
-                    Icons.location_on_outlined,
-                    color: Color(0xFF477AA5),
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter the parking location.';
-                  }
-                  return null;
+              Consumer(
+                builder: (context, ref, _) {
+                  final zones = ref.watch(zonesListProvider);
+                  final selected =
+                      zones.any((z) => z.id == _zoneId) ? _zoneId : null;
+                  return DropdownButtonFormField<String>(
+                    value: selected,
+                    isExpanded: true,
+                    decoration: _inputDecoration(
+                      hintText: zones.isEmpty
+                          ? 'Loading parking lots...'
+                          : 'Select parking lot',
+                      prefixIcon: const Icon(
+                        Icons.location_on_outlined,
+                        color: Color(0xFF477AA5),
+                      ),
+                    ),
+                    items: zones.map((zone) {
+                      return DropdownMenuItem<String>(
+                        value: zone.id,
+                        child: Text(
+                          zone.name,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.navy,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: zones.isEmpty
+                        ? null
+                        : (value) {
+                            setState(() {
+                              _zoneId = value;
+                            });
+                          },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select the parking lot.';
+                      }
+                      return null;
+                    },
+                  );
                 },
               ),
 
