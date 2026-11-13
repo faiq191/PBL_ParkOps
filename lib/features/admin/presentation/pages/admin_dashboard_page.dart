@@ -27,10 +27,7 @@ class AdminDashboardPage extends StatelessWidget {
                     children: [
                       Text(
                         'Management',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: muted,
-                        ),
+                        style: TextStyle(fontSize: 11, color: muted),
                       ),
                       SizedBox(height: 5),
                       Text(
@@ -49,10 +46,7 @@ class AdminDashboardPage extends StatelessWidget {
                   height: 40,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [
-                        Color(0xFF234D70),
-                        Color(0xFF078F85),
-                      ],
+                      colors: [Color(0xFF234D70), Color(0xFF078F85)],
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -83,11 +77,7 @@ class AdminDashboardPage extends StatelessWidget {
                   const SizedBox(height: 12),
                   const Row(
                     children: [
-                      Icon(
-                        Icons.access_time_rounded,
-                        color: blue,
-                        size: 21,
-                      ),
+                      Icon(Icons.access_time_rounded, color: blue, size: 21),
                       SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -95,10 +85,7 @@ class AdminDashboardPage extends StatelessWidget {
                           children: [
                             Text(
                               'Opening hours',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: muted,
-                              ),
+                              style: TextStyle(fontSize: 11, color: muted),
                             ),
                             SizedBox(height: 4),
                             Text(
@@ -114,10 +101,7 @@ class AdminDashboardPage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Divider(
-                    height: 1,
-                    color: AppColors.line,
-                  ),
+                  const Divider(height: 1, color: AppColors.line),
                 ],
               ),
             ),
@@ -152,11 +136,7 @@ class AdminDashboardPage extends StatelessWidget {
                         ),
                         child: const Row(
                           children: [
-                            Icon(
-                              Icons.circle,
-                              size: 7,
-                              color: teal,
-                            ),
+                            Icon(Icons.circle, size: 7, color: teal),
                             SizedBox(width: 6),
                             Text(
                               'Online',
@@ -174,10 +154,7 @@ class AdminDashboardPage extends StatelessWidget {
                   const SizedBox(height: 12),
                   const Text(
                     'Log 1',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: muted,
-                    ),
+                    style: TextStyle(fontSize: 11, color: muted),
                   ),
                   const SizedBox(height: 9),
                   const Row(
@@ -198,10 +175,7 @@ class AdminDashboardPage extends StatelessWidget {
                             SizedBox(height: 4),
                             Text(
                               'Parkiran Terisi',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: muted,
-                              ),
+                              style: TextStyle(fontSize: 10, color: muted),
                             ),
                           ],
                         ),
@@ -221,10 +195,7 @@ class AdminDashboardPage extends StatelessWidget {
                             SizedBox(height: 4),
                             Text(
                               'Date of the log',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: muted,
-                              ),
+                              style: TextStyle(fontSize: 10, color: muted),
                             ),
                           ],
                         ),
@@ -253,10 +224,7 @@ class AdminDashboardPage extends StatelessWidget {
                   const SizedBox(height: 8),
                   const Text(
                     '16 March 2026',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: muted,
-                    ),
+                    style: TextStyle(fontSize: 10, color: muted),
                   ),
                   const SizedBox(height: 5),
                   const Row(
@@ -284,10 +252,7 @@ class AdminDashboardPage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Divider(
-                    height: 1,
-                    color: AppColors.line,
-                  ),
+                  const Divider(height: 1, color: AppColors.line),
                 ],
               ),
             ),
@@ -296,9 +261,7 @@ class AdminDashboardPage extends StatelessWidget {
       ),
 
       // BOTTOM NAVIGATION
-      bottomNavigationBar: const AppBottomNav(
-        currentIndex: 3,
-      ),
+      bottomNavigationBar: const AppBottomNav(currentIndex: 3),
     );
   }
 }
@@ -306,9 +269,7 @@ class AdminDashboardPage extends StatelessWidget {
 class _DashboardCard extends StatelessWidget {
   final Widget child;
 
-  const _DashboardCard({
-    required this.child,
-  });
+  const _DashboardCard({required this.child});
 
   @override
   Widget build(BuildContext context) {
