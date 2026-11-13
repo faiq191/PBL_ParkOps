@@ -6,16 +6,21 @@ import '../../../../routes.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_bottom_nav.dart';
 import '../../../../widgets/parkops_app_bar.dart';
+import '../../data/camera_feeds.dart';
 import '../../domain/entities/parking_slot.dart';
 import '../../domain/entities/parking_zone.dart';
 import '../providers/parking_providers.dart';
+import '../widgets/format_time.dart';
+import '../widgets/lot_chips.dart';
 import '../widgets/placeholder_bays.dart';
 
-/// UI only: bay layout and counts are placeholders.
+/// Map tab. Laid out like the Camera tab: a lot-picker card, a row of
+/// Available / Occupied / Total stat cards, an info card, and a button that
+/// jumps to the other tab.
 class MapPages extends ConsumerWidget {
   const MapPages({super.key});
 
-  static const _cols = 12; // same grid as the camera page
+  static const _cols = 12; // bays per row in the grid
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -45,140 +50,145 @@ class MapPages extends ConsumerWidget {
               ref.watch(slotsStreamProvider(zone.id)).value ??
               const <ParkingSlot>[];
           final occupied = baysFor(zone, slots);
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
-            children: [
-              _mapCard(context, ref, zone, occupied),
-              const SizedBox(height: 14),
-              _cameraButton(context),
-            ],
-          );
+          return _buildBody(context, ref, zone, occupied, slots.isNotEmpty);
         },
       ),
       bottomNavigationBar: const AppBottomNav(currentIndex: 2),
     );
   }
 
-  Widget _mapCard(
+  Widget _buildBody(
     BuildContext context,
     WidgetRef ref,
     ParkingZone zone,
     List<bool> occupied,
+    bool hasRealBays,
   ) {
-    // Lots listed in the map card dropdown
+    // Stats come from the same list that draws the grid, so the numbers and
+    // the bays on screen always agree.
+    final total = occupied.length;
+    final occupiedCount = occupied.where((o) => o).length;
+    final available = total - occupiedCount;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+      children: [
+        _mapCard(ref, zone, occupied),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+              child: StatCard(
+                value: available.toString(),
+                label: 'Available',
+                color: AppColors.teal,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: StatCard(
+                value: occupiedCount.toString(),
+                label: 'Occupied',
+                color: AppColors.full,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: StatCard(
+                value: total.toString(),
+                label: 'Total bays',
+                color: AppColors.navy,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _infoCard(zone, occupied, hasRealBays),
+        const SizedBox(height: 16),
+        _cameraButton(context),
+      ],
+    );
+  }
+
+  Widget _mapCard(WidgetRef ref, ParkingZone zone, List<bool> occupied) {
+    // Lots listed in the card dropdown
     final zones = ref.watch(zonesListProvider);
     return Container(
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Lot picker: switching lots swaps the bay grid and the
-                    // counts to the chosen lot.
-                    DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: zone.id,
-                        isDense: true,
-                        borderRadius: BorderRadius.circular(10),
-                        icon: const Icon(
-                          Icons.keyboard_arrow_down,
-                          color: AppColors.navy,
-                        ),
-                        items: [
-                          for (final z in zones)
-                            DropdownMenuItem(
-                              value: z.id,
-                              child: Text(
-                                z.name,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.navy,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+            child: Row(
+              children: [
+                const Icon(Icons.map_outlined, color: AppColors.navy, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Lot picker: switching lots swaps the bay grid and the
+                      // counts to the chosen lot.
+                      DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: zone.id,
+                          isExpanded: true,
+                          isDense: true,
+                          borderRadius: BorderRadius.circular(10),
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down,
+                            color: AppColors.navy,
+                          ),
+                          items: [
+                            for (final z in zones)
+                              DropdownMenuItem(
+                                value: z.id,
+                                child: Text(
+                                  zones.indexOf(z) < cameraFeeds.length
+                                      ? cameraFeeds[zones.indexOf(z)].title
+                                      : z.name,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.navy,
+                                  ),
                                 ),
                               ),
-                            ),
-                        ],
-                        onChanged: (id) {
-                          if (id != null) {
-                            ref
-                                .read(selectedZoneIdProvider.notifier)
-                                .select(id);
-                          }
-                        },
+                          ],
+                          onChanged: (id) {
+                            if (id != null) {
+                              ref
+                                  .read(selectedZoneIdProvider.notifier)
+                                  .select(id);
+                            }
+                          },
+                        ),
                       ),
-                    ),
-                    Text(
-                      zone.location,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.mist,
+                      const SizedBox(height: 2),
+                      Text(
+                        zone.location,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.mist,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: zone.availableSlots == 0
-                      ? const Color(0xFFF8E3E0)
-                      : AppColors.tealSoft,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  zone.availableSlots == 0
-                      ? 'Full'
-                      : '${zone.availableSlots} spaces available',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: zone.availableSlots == 0
-                        ? AppColors.full
-                        : AppColors.teal,
+                    ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          if (zone.availableSlots > 0)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                children: [
-                  const Icon(Icons.near_me, size: 14, color: AppColors.teal),
-                  const SizedBox(width: 6),
-                  // First free bay = first index holding false; +1 to display as 1-based
-                  Text(
-                    'First free bay: ${occupied.indexOf(false) + 1}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.teal,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          // Bay grid sits edge to edge in the card, like the camera preview.
           Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.paper,
-              borderRadius: BorderRadius.circular(12),
-            ),
+            width: double.infinity,
+            color: AppColors.paper,
+            padding: const EdgeInsets.all(10),
             child: Column(
               children: [
                 // Grid rows = total slots divided by columns, rounded up
@@ -202,13 +212,69 @@ class MapPages extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          const Row(
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                _LegendDot(color: AppColors.ok, label: 'Available'),
+                SizedBox(width: 16),
+                _LegendDot(color: Color(0xFFD5DBE3), label: 'Occupied'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoCard(ParkingZone zone, List<bool> occupied, bool hasRealBays) {
+    final firstFree = occupied.indexOf(false);
+    final isFull = firstFree == -1;
+
+    final String heading = isFull
+        ? 'This lot is full'
+        : 'First free bay: ${firstFree + 1}';
+    final IconData icon = isFull ? Icons.info_outline : Icons.near_me;
+    final String detail = isFull
+        ? 'No free bays right now. Pick another lot from the dropdown.'
+        : hasRealBays
+        ? 'Bay status updates automatically.'
+        : 'Bay layout is estimated from the lot counts until per-bay data '
+              'is available.';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              _LegendDot(color: AppColors.ok, label: 'Available'),
-              SizedBox(width: 16),
-              _LegendDot(color: Color(0xFFB8C1CC), label: 'Occupied'),
+              Icon(icon, color: AppColors.navy, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  heading,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.navy,
+                  ),
+                ),
+              ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$detail Last update: ${formatTimestamp(zone.lastUpdated)}.',
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.mist,
+              height: 1.4,
+            ),
           ),
         ],
       ),

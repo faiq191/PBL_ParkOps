@@ -7,6 +7,7 @@ import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_bottom_nav.dart';
 import '../../../../widgets/parkops_app_bar.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../parking/presentation/providers/parking_providers.dart';
 import '../../../reporting/presentation/pages/reporting_page.dart';
 
 class InformationPages extends ConsumerWidget {
@@ -15,6 +16,19 @@ class InformationPages extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAdmin = ref.watch(authStateProvider).value?.isAdmin ?? false;
+
+    // Latest footage time = when the ML worker last processed a frame for the
+    // camera selected on the Camera tab. Shows --:--:-- until one arrives.
+    final feed = ref.watch(selectedCameraFeedProvider);
+    final processedAt = ref
+        .watch(cameraInferenceStreamProvider(feed.id))
+        .asData
+        ?.value
+        ?.processedAt;
+    final footageTime = processedAt == null
+        ? '--:--:--'
+        : _formatClock(processedAt);
+
     return Scaffold(
       backgroundColor: AppColors.paper,
       appBar: const ParkOpsAppBar(section: 'PARKOPS', title: 'Information'),
@@ -185,15 +199,15 @@ class InformationPages extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-                const Row(
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
+                    const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '99.2%',
+                            '89.2%',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -216,15 +230,15 @@ class InformationPages extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '09:11:11',
-                            style: TextStyle(
+                            footageTime,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
                               color: AppColors.navy,
                             ),
                           ),
-                          SizedBox(height: 4),
-                          Text(
+                          const SizedBox(height: 4),
+                          const Text(
                             'Latest footage time',
                             style: TextStyle(
                               fontSize: 11,
@@ -242,15 +256,12 @@ class InformationPages extends ConsumerWidget {
 
           const SizedBox(height: 16),
 
-
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const ReportingPage(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const ReportingPage()),
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -264,10 +275,7 @@ class InformationPages extends ConsumerWidget {
               ),
               child: const Text(
                 'Need Assistance',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -277,10 +285,7 @@ class InformationPages extends ConsumerWidget {
           const SizedBox(height: 16),
 
           // Administrator card: only shown to signed-in admins
-          if (isAdmin) ...[
-            const _AdminCard(),
-            const SizedBox(height: 16),
-          ],
+          if (isAdmin) ...[const _AdminCard(), const SizedBox(height: 16)],
 
           // Replay walkthrough card
           _InfoCard(
@@ -339,6 +344,15 @@ class InformationPages extends ConsumerWidget {
       bottomNavigationBar: const AppBottomNav(currentIndex: 3),
     );
   }
+}
+
+/// HH:MM:SS in local time.
+String _formatClock(DateTime time) {
+  final local = time.toLocal();
+  final hour = local.hour.toString().padLeft(2, '0');
+  final minute = local.minute.toString().padLeft(2, '0');
+  final second = local.second.toString().padLeft(2, '0');
+  return '$hour:$minute:$second';
 }
 
 class _InfoCard extends StatelessWidget {
