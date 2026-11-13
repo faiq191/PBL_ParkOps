@@ -50,138 +50,35 @@ class AdminDashboardPage extends ConsumerWidget {
         data: (zones) => ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           children: [
-            _OverviewCard(zones: zones),
-            const SizedBox(height: 22),
-            const _SectionTitle('Parking lots'),
-            if (zones.isEmpty)
-              const _EmptyNote('No parking lots yet.')
-            else
-              ...zones.map((zone) => _LotCard(zone: zone)),
-            const SizedBox(height: 14),
-            const _SectionTitle('Live camera'),
-            const _CameraCard(),
-            const SizedBox(height: 22),
-            const _SectionTitle('Customer reports'),
-            const _ReportsCard(),
-          ],
-        ),
-      ),
-      bottomNavigationBar: const AppBottomNav(currentIndex: 3),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10, left: 2),
-      child: Text(
-        text.toUpperCase(),
-        style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.6,
-          color: _muted,
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyNote extends StatelessWidget {
-  const _EmptyNote(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Card(
-      child: Text(text, style: const TextStyle(fontSize: 12, color: _muted)),
-    );
-  }
-}
-
-class _Card extends StatelessWidget {
-  const _Card({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: child,
-    );
-  }
-}
-
-class _OverviewCard extends StatelessWidget {
-  const _OverviewCard({required this.zones});
-
-  final List<ParkingZone> zones;
-
-  @override
-  Widget build(BuildContext context) {
-    final total = zones.fold<int>(0, (sum, z) => sum + z.totalSlots);
-    final available = zones.fold<int>(0, (sum, z) => sum + z.availableSlots);
-    final occupied =
-        (total - available).clamp(0, total < 0 ? 0 : total).toInt();
-    final ratio = total == 0 ? 0.0 : occupied / total;
-
-    DateTime? updated;
-    for (final zone in zones) {
-      if (updated == null || zone.lastUpdated.isAfter(updated)) {
-        updated = zone.lastUpdated;
-      }
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.navy,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                'Campus occupancy',
-                style: TextStyle(fontSize: 12, color: AppColors.mist),
-              ),
-              const Spacer(),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.circle, size: 7, color: AppColors.tealLight),
-                    SizedBox(width: 6),
-                    Text(
-                      'Live',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+            // HEADER
+            Row(
+              children: [
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Management',
+                        style: TextStyle(fontSize: 11, color: muted),
                       ),
+                      SizedBox(height: 5),
+                      Text(
+                        'Admin',
+                        style: TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.navy,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF234D70), Color(0xFF078F85)],
                     ),
                   ],
                 ),
@@ -246,21 +143,49 @@ class _OverviewCard extends StatelessWidget {
 class _Stat extends StatelessWidget {
   const _Stat({required this.label, required this.value});
 
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
+            // PARKING ESSENTIALS
+            _DashboardCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Parking essentials',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.navy,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Row(
+                    children: [
+                      Icon(Icons.access_time_rounded, color: blue, size: 21),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Opening hours',
+                              style: TextStyle(fontSize: 11, color: muted),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              '24 hours, every day',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.navy,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(height: 1, color: AppColors.line),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 2),
@@ -277,60 +202,97 @@ class _Stat extends StatelessWidget {
 class _LotCard extends StatelessWidget {
   const _LotCard({required this.zone});
 
-  final ParkingZone zone;
-
-  Color get _color {
-    switch (zone.status) {
-      case ZoneStatus.full:
-        return AppColors.full;
-      case ZoneStatus.tight:
-        return AppColors.tight;
-      case ZoneStatus.ok:
-        return AppColors.ok;
-    }
-  }
-
-  String get _label {
-    switch (zone.status) {
-      case ZoneStatus.full:
-        return 'Full';
-      case ZoneStatus.tight:
-        return 'Almost full';
-      case ZoneStatus.ok:
-        return 'Available';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final total = zone.totalSlots;
-    final occupied =
-        zone.occupiedSlots.clamp(0, total < 0 ? 0 : total).toInt();
-    final ratio = total == 0 ? 0.0 : occupied / total;
-
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      zone.name,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.navy,
+            // LOG PARKIRAN
+            _DashboardCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Log Parkiran',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.navy,
+                          ),
+                        ),
                       ),
-                    ),
-                    if (zone.location.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        zone.location,
-                        style: const TextStyle(fontSize: 11, color: _muted),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 11,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE3F3ED),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.circle, size: 7, color: teal),
+                            SizedBox(width: 6),
+                            Text(
+                              'Online',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: teal,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Log 1',
+                    style: TextStyle(fontSize: 11, color: muted),
+                  ),
+                  const SizedBox(height: 9),
+                  const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '99.2%',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.navy,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Parkiran Terisi',
+                              style: TextStyle(fontSize: 10, color: muted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'March 2026',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.navy,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Date of the log',
+                              style: TextStyle(fontSize: 10, color: muted),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ],
@@ -446,9 +408,10 @@ class _CameraCard extends ConsumerWidget {
                     value: '${result.vehicleCount}',
                     label: 'Vehicles',
                   ),
-                  _CameraFact(
-                    value: '${result.emptySpaceCount}',
-                    label: 'Empty spaces',
+                  const SizedBox(height: 8),
+                  const Text(
+                    '16 March 2026',
+                    style: TextStyle(fontSize: 10, color: muted),
                   ),
                   Expanded(
                     flex: 2,
@@ -463,14 +426,11 @@ class _CameraCard extends ConsumerWidget {
                             color: AppColors.navy,
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'Last processed',
-                          style: TextStyle(fontSize: 10, color: _muted),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 12),
+                  const Divider(height: 1, color: AppColors.line),
                 ],
               );
             },
@@ -512,23 +472,8 @@ class _CameraFact extends StatelessWidget {
 class _ReportsCard extends ConsumerWidget {
   const _ReportsCard();
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final reports = ref.watch(recentReportsProvider);
-
-    return reports.when(
-      loading: () => const _Card(
-        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-      ),
-      error: (_, __) => const _EmptyNote(
-        'Could not load reports. Check the Firestore rules for reports.',
-      ),
-      data: (items) {
-        if (items.isEmpty) return const _EmptyNote('No reports yet.');
-        return Column(
-          children: items.map((report) => _ReportTile(report: report)).toList(),
-        );
-      },
+      // BOTTOM NAVIGATION
+      bottomNavigationBar: const AppBottomNav(currentIndex: 3),
     );
   }
 }
@@ -536,7 +481,7 @@ class _ReportsCard extends ConsumerWidget {
 class _ReportTile extends StatelessWidget {
   const _ReportTile({required this.report});
 
-  final ParkingReport report;
+  const _DashboardCard({required this.child});
 
   @override
   Widget build(BuildContext context) {

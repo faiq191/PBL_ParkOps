@@ -9,7 +9,7 @@ class ReportingPage extends StatelessWidget {
   const ReportingPage({super.key});
 
   Future<void> _openWhatsApp(BuildContext context) async {
-    final Uri whatsappUrl = Uri.parse('https://wa.me/628122600960');
+    final Uri whatsappUrl = Uri.parse('https://wa.me/6281234397940');
 
     try {
       final bool launched = await launchUrl(
