@@ -30,6 +30,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     super.dispose();
   }
 
+  /// Where to go after signing in: the route passed as an argument (for
+  /// example the admin dashboard), otherwise the homepage.
+  String get _next {
+    final arg = ModalRoute.of(context)?.settings.arguments;
+    return arg is String ? arg : Routes.home;
+  }
+
   Future<void> _login() async {
     FocusScope.of(context).unfocus();
     final emailError = AuthValidators.email(_emailController.text);
@@ -52,7 +59,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
     await ref.read(onboardingRepositoryProvider).setDone(done: true);
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed(Routes.home);
+    Navigator.of(context).pushReplacementNamed(_next);
   }
 
   Future<void> _forgotPassword() async {
@@ -80,7 +87,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
     await ref.read(onboardingRepositoryProvider).setDone(done: true);
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed(Routes.home);
+    Navigator.of(context).pushReplacementNamed(_next);
   }
 
   void _showSoon(String message) {
@@ -211,41 +218,31 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ],
               ),
               const SizedBox(height: 22),
-              Row(
-                children: [
-                  Expanded(
-                    child: _socialButton(
-                      onTap: loading
-                          ? null
-                          : () => _social(ref
-                              .read(authControllerProvider.notifier)
-                              .signInWithGoogle),
-                      child: const Icon(
-                        Icons.g_mobiledata_rounded,
-                        size: 36,
-                        color: Color(0xFFDB4437),
+              _socialButton(
+                onTap: loading
+                    ? null
+                    : () => _social(ref
+                        .read(authControllerProvider.notifier)
+                        .signInWithGoogle),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.g_mobiledata_rounded,
+                      size: 36,
+                      color: Color(0xFFDB4437),
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      'Continue with Google',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.navy,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _socialButton(
-                      onTap: loading
-                          ? null
-                          : () => _social(ref
-                              .read(authControllerProvider.notifier)
-                              .signInWithYahoo),
-                      child: const Text(
-                        'Y!',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF6001D2),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(height: 48),
               Center(

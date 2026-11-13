@@ -3,7 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/failures.dart';
 import '../../domain/entities/parking_slot.dart';
 import '../../domain/entities/parking_zone.dart';
+import '../../domain/entities/camera_inference_result.dart';
 import '../../domain/repositories/parking_repository.dart';
+import '../models/camera_inference_result_model.dart';
 import '../models/parking_slot_model.dart';
 import '../models/parking_zone_model.dart';
 import '../seed_zones.dart';
@@ -59,11 +61,12 @@ class ParkingRepositoryImpl implements ParkingRepository {
   @override
   Stream<List<ParkingSlot>> watchSlots(String zoneId) async* {
     try {
-      await for (final snapshot in firestore
-          .collection('parking_zones')
-          .doc(zoneId)
-          .collection('slots')
-          .snapshots()) {
+      await for (final snapshot
+          in firestore
+              .collection('parking_zones')
+              .doc(zoneId)
+              .collection('slots')
+              .snapshots()) {
         yield [
           for (final doc in snapshot.docs)
             ParkingSlotModel.fromFirestore(doc.id, doc.data()).toEntity(),
@@ -71,6 +74,30 @@ class ParkingRepositoryImpl implements ParkingRepository {
       }
     } on Object catch (e) {
       throw FirestoreFailure('Could not load slots for zone "$zoneId"', e);
+    }
+  }
+
+  @override
+  Stream<CameraInferenceResult?> watchCameraInference(String cameraId) async* {
+    try {
+      await for (final snapshot
+          in firestore
+              .collection('camera_inference')
+              .doc(cameraId)
+              .snapshots()) {
+        final data = snapshot.data();
+        yield data == null
+            ? null
+            : CameraInferenceResultModel.fromFirestore(
+                snapshot.id,
+                data,
+              ).toEntity();
+      }
+    } on Object catch (e) {
+      throw FirestoreFailure(
+        'Could not load camera inference for "$cameraId"',
+        e,
+      );
     }
   }
 }

@@ -6,6 +6,7 @@ import '../../../../routes.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/app_bottom_nav.dart';
 import '../../../../widgets/parkops_app_bar.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../reporting/presentation/pages/reporting_page.dart';
 
 class InformationPages extends ConsumerWidget {
@@ -13,6 +14,7 @@ class InformationPages extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isAdmin = ref.watch(authStateProvider).value?.isAdmin ?? false;
     return Scaffold(
       backgroundColor: AppColors.paper,
       appBar: const ParkOpsAppBar(section: 'PARKOPS', title: 'Information'),
@@ -274,50 +276,11 @@ class InformationPages extends ConsumerWidget {
 
           const SizedBox(height: 16),
 
-          // Administrator login card
-          _InfoCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Are You Administrator?',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.navy,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                InkWell(
-                  onTap: () {
-                    Navigator.of(context).pushNamed(Routes.admin);
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.admin_panel_settings,
-                          color: Colors.black,
-                          size: 23,
-                        ),
-                        SizedBox(width: 12),
-                        Text(
-                          'Login as Admin',
-                          style: TextStyle(fontSize: 13, color: AppColors.navy),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Divider(height: 1, color: AppColors.line),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
+          // Administrator card: only shown to signed-in admins
+          if (isAdmin) ...[
+            const _AdminCard(),
+            const SizedBox(height: 16),
+          ],
 
           // Replay walkthrough card
           _InfoCard(
@@ -392,6 +355,53 @@ class _InfoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(21),
       ),
       child: child,
+    );
+  }
+}
+
+/// Shortcut to the admin dashboard. Only built for users whose profile has
+/// role == 'admin'; the route itself is also protected by AdminGuard.
+class _AdminCard extends StatelessWidget {
+  const _AdminCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return _InfoCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Administrator',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              color: AppColors.navy,
+            ),
+          ),
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: () => Navigator.of(context).pushNamed(Routes.admin),
+            borderRadius: BorderRadius.circular(8),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.admin_panel_settings,
+                    color: Colors.black,
+                    size: 23,
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    'Open Admin Dashboard',
+                    style: TextStyle(fontSize: 13, color: AppColors.navy),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

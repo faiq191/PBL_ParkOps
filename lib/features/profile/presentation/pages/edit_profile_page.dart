@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../theme/app_colors.dart';
 import '../providers/profile_provider.dart';
@@ -14,12 +16,15 @@ class EditProfilePage extends ConsumerStatefulWidget {
 }
 
 class _EditProfilePageState extends ConsumerState<EditProfilePage> {
+  static const int _nimLength = 10;
+
   late TextEditingController _nameController;
   late TextEditingController _bioController;
   late TextEditingController _emailController;
   late TextEditingController _nimController;
   final ImagePicker _picker = ImagePicker();
   String? _avatarPath;
+  String? _nimError;
 
   @override
   void initState() {
@@ -44,13 +49,30 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   Future<void> _pickImage(ImageSource source) async {
     final picked = await _picker.pickImage(
       source: source,
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 90,
+    );
+    if (picked == null) return;
+
+    final cropped = await ImageCropper().cropImage(
+      sourcePath: picked.path,
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
       maxWidth: 800,
       maxHeight: 800,
-      imageQuality: 85,
+      compressQuality: 85,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Crop photo',
+          toolbarColor: AppColors.navy,
+          toolbarWidgetColor: Colors.white,
+          activeControlsWidgetColor: AppColors.teal,
+        ),
+        IOSUiSettings(title: 'Crop photo'),
+      ],
     );
-    if (picked != null) {
-      setState(() => _avatarPath = picked.path);
-    }
+    if (cropped == null || !mounted) return;
+    setState(() => _avatarPath = cropped.path);
   }
 
   void _showImageOptions() {
@@ -101,6 +123,24 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         ),
       ),
     );
+  }
+
+  void _save() {
+    final nim = _nimController.text.trim();
+    if (nim.isNotEmpty && nim.length != _nimLength) {
+      setState(() => _nimError = 'NIM must be $_nimLength digits');
+      return;
+    }
+    ref.read(profileProvider.notifier).updateProfile(
+          ref.read(profileProvider).copyWith(
+                name: _nameController.text,
+                bio: _bioController.text,
+                email: _emailController.text,
+                nim: nim,
+                avatarPath: _avatarPath,
+              ),
+        );
+    Navigator.pop(context);
   }
 
   Widget _buildAvatar() {
@@ -155,18 +195,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              ref.read(profileProvider.notifier).updateProfile(
-                    ref.read(profileProvider).copyWith(
-                          name: _nameController.text,
-                          bio: _bioController.text,
-                          email: _emailController.text,
-                          nim: _nimController.text,
-                          avatarPath: _avatarPath,
-                        ),
-                  );
-              Navigator.pop(context);
-            },
+            onPressed: _save,
             child: const Text(
               'Save',
               style: TextStyle(
@@ -185,7 +214,19 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           const SizedBox(height: 24),
           _buildTextField('Name', _nameController),
           const SizedBox(height: 16),
-          _buildTextField('NIM', _nimController),
+          _buildTextField(
+            'NIM',
+            _nimController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(_nimLength),
+            ],
+            errorText: _nimError,
+            onChanged: (_) {
+              if (_nimError != null) setState(() => _nimError = null);
+            },
+          ),
           const SizedBox(height: 16),
           _buildTextField('Email', _emailController),
           const SizedBox(height: 16),
@@ -195,7 +236,14 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    String? errorText,
+    ValueChanged<String>? onChanged,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -209,10 +257,14 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          onChanged: onChanged,
           style: const TextStyle(color: AppColors.navy),
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white,
+            errorText: errorText,
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppColors.line),
@@ -220,6 +272,14 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppColors.teal),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.red),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.red),
             ),
           ),
         ),

@@ -1,5 +1,6 @@
 import '../entities/parking_slot.dart';
 import '../entities/parking_zone.dart';
+import '../entities/camera_inference_result.dart';
 
 /// Contract for parking data (CI-1). The presentation layer depends only on
 /// this abstract class; the Firestore-backed implementation lives in
@@ -13,4 +14,7 @@ abstract class ParkingRepository {
 
   // Realtime stream of parking slots for one zone from the 'slots' subcollection
   Stream<List<ParkingSlot>> watchSlots(String zoneId);
+
+  // Latest cloud-inference result for a camera
+  Stream<CameraInferenceResult?> watchCameraInference(String cameraId);
 }

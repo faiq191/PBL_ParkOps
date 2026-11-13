@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'features/admin/presentation/pages/admin_dashboard_page.dart';
+import 'features/admin/presentation/pages/admin_guard.dart';
 import 'features/auth/presentation/pages/login_pages.dart';
 import 'features/auth/presentation/pages/register_page.dart';
 import 'features/information/presentation/pages/information_pages.dart';
@@ -31,7 +32,7 @@ class Routes {
     camera: (_) => const CameraPages(),
     map: (_) => const MapPages(),
     info: (_) => const InformationPages(),
-    admin: (_) => const AdminDashboardPage(),
+    admin: (_) => const AdminGuard(child: AdminDashboardPage()),
     login: (_) => const LoginPage(),
     register: (_) => const RegisterPage(),
     settings: (_) => const SettingsPage(),

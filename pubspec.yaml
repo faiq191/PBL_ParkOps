@@ -1,4 +1,4 @@
-﻿name: pbl_parkops
+name: pbl_parkops
 description: "A new Flutter project."
 publish_to: "none"
 version: 1.0.0+1
@@ -21,6 +21,8 @@ dependencies:
   path_provider: ^2.1.6
   image_picker: ^1.2.4
   url_launcher: ^6.3.2
+  google_sign_in: 7.0.0
+  image_cropper: ^13.0.0
 
 dev_dependencies:
   flutter_test:
