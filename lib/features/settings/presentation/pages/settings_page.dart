@@ -8,6 +8,7 @@ import '../../../../features/parking/data/seed_zones.dart';
 import '../../../../routes.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/parkops_app_bar.dart';
+import '../../data/notification_repeat.dart';
 import '../../data/parking_notification_service.dart';
 import '../../data/settings_preference_keys.dart';
 import '../providers/settings_providers.dart';
@@ -23,6 +24,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _favoriteLotId = seedZones.first.id;
   bool _dailyNotificationEnabled = false;
   int _notificationMinuteOfDay = 8 * 60;
+  int _notificationRepeatDays = everyDayNotificationRepeatMask;
+  NotificationRepeatPreset _notificationRepeatPreset =
+      NotificationRepeatPreset.everyDay;
   bool _darkModeSelected = false;
   bool _savingNotification = false;
 
@@ -42,6 +46,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _notificationMinuteOfDay =
         preferences.getInt(SettingsPreferenceKeys.notificationMinuteOfDay) ??
         8 * 60;
+    _notificationRepeatDays =
+        preferences.getInt(SettingsPreferenceKeys.notificationRepeatDays) ??
+        everyDayNotificationRepeatMask;
+    _notificationRepeatPreset = notificationPresetFromMask(
+      _notificationRepeatDays,
+    );
     _darkModeSelected =
         preferences.getBool(SettingsPreferenceKeys.darkModeSelected) ?? false;
   }
@@ -68,6 +78,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       await _saveNotificationSettings(
         favoriteLotId: lotId,
         minuteOfDay: _notificationMinuteOfDay,
+        repeatDays: _notificationRepeatDays,
       );
       return;
     }
@@ -93,6 +104,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       await _saveNotificationSettings(
         favoriteLotId: _favoriteLotId,
         minuteOfDay: minuteOfDay,
+        repeatDays: _notificationRepeatDays,
       );
       return;
     }
@@ -105,6 +117,58 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       return;
     }
     setState(() => _notificationMinuteOfDay = minuteOfDay);
+  }
+
+  Future<void> _setRepeatPreset(NotificationRepeatPreset? preset) async {
+    if (preset == null) return;
+    final customMask = isValidNotificationRepeatMask(_notificationRepeatDays)
+        ? _notificationRepeatDays
+        : weekdaysNotificationRepeatMask;
+    final repeatDays = notificationMaskForPreset(
+      preset,
+      customMask: customMask,
+    );
+    setState(() {
+      _notificationRepeatPreset = preset;
+      _notificationRepeatDays = repeatDays;
+    });
+    await _applyRepeatDays(repeatDays);
+  }
+
+  Future<void> _setRepeatDay(int chipIndex, bool selected) async {
+    final weekday = notificationWeekdayFromChipIndex(chipIndex);
+    final bit = 1 << (weekday - 1);
+    final repeatDays = selected
+        ? _notificationRepeatDays | bit
+        : _notificationRepeatDays & ~bit;
+    setState(() {
+      _notificationRepeatPreset = NotificationRepeatPreset.custom;
+      _notificationRepeatDays = repeatDays;
+    });
+    await _applyRepeatDays(repeatDays);
+  }
+
+  /// Persists a validated repeat mask, rescheduling immediately when the
+  /// daily summary is already enabled.
+  Future<void> _applyRepeatDays(int repeatDays) async {
+    if (!isValidNotificationRepeatMask(repeatDays)) {
+      _showMessage('Select at least one day for the notification schedule.');
+      return;
+    }
+    if (_dailyNotificationEnabled) {
+      await _saveNotificationSettings(
+        favoriteLotId: _favoriteLotId,
+        minuteOfDay: _notificationMinuteOfDay,
+        repeatDays: repeatDays,
+      );
+      return;
+    }
+    final saved = await ref
+        .read(sharedPreferencesProvider)
+        .setInt(SettingsPreferenceKeys.notificationRepeatDays, repeatDays);
+    if (!saved && mounted) {
+      _showMessage('Could not save the notification schedule.');
+    }
   }
 
   Future<void> _toggleDailyNotification(bool enabled) async {
@@ -136,6 +200,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     await _saveNotificationSettings(
       favoriteLotId: _favoriteLotId,
       minuteOfDay: _notificationMinuteOfDay,
+      repeatDays: _notificationRepeatDays,
       enableAfterSave: true,
     );
   }
@@ -143,8 +208,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Future<void> _saveNotificationSettings({
     required String favoriteLotId,
     required int minuteOfDay,
+    required int repeatDays,
     bool enableAfterSave = false,
   }) async {
+    if (!isValidNotificationRepeatMask(repeatDays)) {
+      _showMessage('Select at least one day for the notification schedule.');
+      return;
+    }
     setState(() => _savingNotification = true);
     try {
       final notificationService = ParkingNotificationService.instance;
@@ -161,6 +231,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       await notificationService.scheduleDailySummary(
         favoriteLotId: favoriteLotId,
         minuteOfDay: minuteOfDay,
+        repeatDays: repeatDays,
       );
       if (!mounted) return;
       final preferences = ref.read(sharedPreferencesProvider);
@@ -172,19 +243,24 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         SettingsPreferenceKeys.notificationMinuteOfDay,
         minuteOfDay,
       );
+      final repeatSaved = await preferences.setInt(
+        SettingsPreferenceKeys.notificationRepeatDays,
+        repeatDays,
+      );
       final enabledSaved = enableAfterSave
           ? await preferences.setBool(
               SettingsPreferenceKeys.dailyNotificationEnabled,
               true,
             )
           : true;
-      if (!favoriteSaved || !timeSaved || !enabledSaved) {
+      if (!favoriteSaved || !timeSaved || !repeatSaved || !enabledSaved) {
         _showMessage('Could not save all notification preferences.');
         return;
       }
       setState(() {
         _favoriteLotId = favoriteLotId;
         _notificationMinuteOfDay = minuteOfDay;
+        _notificationRepeatDays = repeatDays;
         _dailyNotificationEnabled = true;
       });
     } on PlatformException catch (error) {
@@ -227,6 +303,29 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Widget _buildRepeatDayChip(int chipIndex, String label) {
+    final weekday = notificationWeekdayFromChipIndex(chipIndex);
+    final active = _notificationRepeatDays & (1 << (weekday - 1)) != 0;
+    return ChoiceChip(
+      key: ValueKey('notification-repeat-day-$label'),
+      label: Text(label),
+      selected: active,
+      showCheckmark: false,
+      onSelected: _savingNotification
+          ? null
+          : (selected) => _setRepeatDay(chipIndex, selected),
+      selectedColor: AppColors.tealSoft,
+      backgroundColor: AppColors.paper,
+      side: BorderSide(color: active ? AppColors.teal : AppColors.line),
+      labelStyle: TextStyle(
+        color: active ? AppColors.teal : AppColors.navy,
+        fontWeight: FontWeight.w600,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
   }
 
   @override
@@ -306,6 +405,62 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 child: Text(_notificationTime.format(context)),
               ),
             ),
+            const Divider(height: 1, color: AppColors.line),
+            ListTile(
+              key: const ValueKey('notification-repeat-setting'),
+              contentPadding: EdgeInsets.zero,
+              title: const Text(
+                'Repeat',
+                style: TextStyle(
+                  color: AppColors.navy,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: Text(
+                _notificationRepeatDays == 0
+                    ? 'No days selected'
+                    : notificationRepeatLabel(_notificationRepeatDays),
+              ),
+              trailing: DropdownButton<NotificationRepeatPreset>(
+                key: const ValueKey('notification-repeat-preset-setting'),
+                value: _notificationRepeatPreset,
+                items: const [
+                  DropdownMenuItem(
+                    value: NotificationRepeatPreset.everyDay,
+                    child: Text('Every day'),
+                  ),
+                  DropdownMenuItem(
+                    value: NotificationRepeatPreset.weekdays,
+                    child: Text('Mon–Fri'),
+                  ),
+                  DropdownMenuItem(
+                    value: NotificationRepeatPreset.custom,
+                    child: Text('Custom'),
+                  ),
+                ],
+                onChanged: _savingNotification ? null : _setRepeatPreset,
+              ),
+            ),
+            if (_notificationRepeatPreset == NotificationRepeatPreset.custom)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (
+                      var index = 0;
+                      index < notificationWeekdayLabels.length;
+                      index++
+                    )
+                      _buildRepeatDayChip(
+                        index,
+                        notificationWeekdayLabels[index],
+                      ),
+                  ],
+                ),
+              ),
+            const Divider(height: 1, color: AppColors.line),
             SwitchListTile(
               key: const ValueKey('daily-notification-setting'),
               contentPadding: EdgeInsets.zero,
