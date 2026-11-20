@@ -28,7 +28,7 @@ class HomepagePages extends ConsumerWidget {
         : results[selectedIndex];
 
     return Scaffold(
-      backgroundColor: AppColors.paper,
+      backgroundColor: context.palette.paper,
       appBar: const ParkOpsAppBar(section: 'Homepage', title: 'ParkOps'),
       body: ListView(
         padding: const EdgeInsets.all(18),
@@ -40,12 +40,12 @@ class HomepagePages extends ConsumerWidget {
             inference: selectedResult,
           ),
           const SizedBox(height: 18),
-          const Text(
+          Text(
             'Explore the lot',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: AppColors.navy,
+              color: context.palette.navy,
             ),
           ),
           const SizedBox(height: 10),
@@ -73,12 +73,12 @@ class HomepagePages extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 18),
-          const Text(
+          Text(
             'Parking cameras',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: AppColors.navy,
+              color: context.palette.navy,
             ),
           ),
           const SizedBox(height: 10),
@@ -185,12 +185,13 @@ class _SelectedCameraCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final result = inference.asData?.value;
     final error = inference.hasError;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: palette.card,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -202,10 +203,10 @@ class _SelectedCameraCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   feed.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.navy,
+                    color: palette.navy,
                   ),
                 ),
               ),
@@ -215,7 +216,7 @@ class _SelectedCameraCard extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: result == null ? AppColors.line : AppColors.tealSoft,
+                  color: result == null ? palette.line : palette.tealSoft,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -225,10 +226,10 @@ class _SelectedCameraCard extends StatelessWidget {
                       ? 'Waiting'
                       : '${result.vehicleCount + result.emptySpaceCount} '
                             'detections',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.navy,
+                    color: palette.navy,
                   ),
                 ),
               ),
@@ -240,19 +241,19 @@ class _SelectedCameraCard extends StatelessWidget {
             children: [
               Text(
                 result == null ? '--' : '${result.emptySpaceCount}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 52,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.navy,
+                  color: palette.navy,
                   height: 1,
                 ),
               ),
               const SizedBox(width: 8),
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
-                child: const Text(
+                child: Text(
                   'empty spaces detected',
-                  style: TextStyle(fontSize: 14, color: AppColors.mist),
+                  style: TextStyle(fontSize: 14, color: palette.mist),
                 ),
               ),
             ],
@@ -264,21 +265,21 @@ class _SelectedCameraCard extends StatelessWidget {
                       ? 'Could not load camera data.'
                       : 'Ask the laptop operator to start the ML worker.'
                 : '${result.vehicleCount} vehicles detected in the latest frame.',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppColors.teal,
+              color: palette.teal,
             ),
           ),
           const SizedBox(height: 14),
-          const Divider(height: 1, color: AppColors.line),
+          Divider(height: 1, color: palette.line),
           const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Camera inference',
-                style: TextStyle(fontSize: 12, color: AppColors.mist),
+                style: TextStyle(fontSize: 12, color: palette.mist),
               ),
               Flexible(
                 child: Text(
@@ -288,7 +289,7 @@ class _SelectedCameraCard extends StatelessWidget {
                             : 'Waiting for worker'
                       : _formatHomeTime(result.processedAt),
                   textAlign: TextAlign.end,
-                  style: const TextStyle(fontSize: 12, color: AppColors.mist),
+                  style: TextStyle(fontSize: 12, color: palette.mist),
                 ),
               ),
             ],
@@ -314,8 +315,9 @@ class _CameraRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final result = inference.asData?.value;
-    final statusColor = result == null ? AppColors.mist : AppColors.teal;
+    final statusColor = result == null ? palette.mist : palette.teal;
     final status = inference.hasError
         ? 'Unavailable'
         : result == null
@@ -325,7 +327,7 @@ class _CameraRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: Colors.white,
+        color: palette.card,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -344,37 +346,34 @@ class _CameraRow extends StatelessWidget {
                     children: [
                       Text(
                         feed.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
-                          color: AppColors.navy,
+                          color: palette.navy,
                         ),
                       ),
                       Text(
                         feed.id,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF8892A0),
-                        ),
+                        style: TextStyle(fontSize: 10, color: palette.mist),
                       ),
                     ],
                   ),
                 ),
                 if (selected)
-                  const Padding(
-                    padding: EdgeInsets.only(right: 10),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
                     child: Icon(
                       Icons.check_circle,
                       size: 16,
-                      color: AppColors.navy,
+                      color: palette.navy,
                     ),
                   ),
                 Text(
                   status,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 13,
-                    color: AppColors.navy,
+                    color: palette.navy,
                   ),
                 ),
               ],
@@ -401,8 +400,9 @@ class _ExploreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Material(
-      color: Colors.white,
+      color: palette.card,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -415,23 +415,23 @@ class _ExploreCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(icon, color: AppColors.navy, size: 22),
-                  const Icon(Icons.north_east, color: AppColors.navy, size: 16),
+                  Icon(icon, color: palette.navy, size: 22),
+                  Icon(Icons.north_east, color: palette.navy, size: 16),
                 ],
               ),
               const SizedBox(height: 16),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.navy,
+                  color: palette.navy,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: const TextStyle(fontSize: 11, color: AppColors.mist),
+                style: TextStyle(fontSize: 11, color: palette.mist),
               ),
             ],
           ),

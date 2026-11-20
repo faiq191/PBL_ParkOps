@@ -71,7 +71,7 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
     final overlayEnabled = ref.watch(cameraOverlayPreferenceProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.paper,
+      backgroundColor: context.palette.paper,
       appBar: const ParkOpsAppBar(
         section: 'Camera',
         title: 'Parking Lot Camera',
@@ -120,7 +120,7 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
               child: StatCard(
                 value: total?.toString() ?? '--',
                 label: 'Total bays',
-                color: AppColors.navy,
+                color: context.palette.navy,
               ),
             ),
           ],
@@ -138,9 +138,10 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
     bool overlayEnabled,
     AsyncValue<CameraInferenceResult?> inference,
   ) {
+    final palette = context.palette;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: palette.card,
         borderRadius: BorderRadius.circular(16),
       ),
       clipBehavior: Clip.antiAlias,
@@ -151,11 +152,7 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
             padding: const EdgeInsets.fromLTRB(14, 8, 6, 8),
             child: Row(
               children: [
-                const Icon(
-                  Icons.videocam_outlined,
-                  color: AppColors.navy,
-                  size: 20,
-                ),
+                Icon(Icons.videocam_outlined, color: palette.navy, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: DropdownButtonHideUnderline(
@@ -164,9 +161,9 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
                       isExpanded: true,
                       isDense: true,
                       borderRadius: BorderRadius.circular(10),
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.keyboard_arrow_down,
-                        color: AppColors.navy,
+                        color: palette.navy,
                       ),
                       items: [
                         for (final item in cameraFeeds)
@@ -175,10 +172,10 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
                             child: Text(
                               item.title,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.navy,
+                                color: palette.navy,
                               ),
                             ),
                           ),
@@ -196,7 +193,7 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
                 IconButton(
                   tooltip: 'Open camera feed',
                   onPressed: () => _openCameraPage(feed),
-                  icon: const Icon(Icons.open_in_new, color: AppColors.navy),
+                  icon: Icon(Icons.open_in_new, color: palette.navy),
                 ),
               ],
             ),
@@ -209,18 +206,18 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
             child: Row(
               children: [
-                const Text(
+                Text(
                   'Detection overlay',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.navy,
+                    color: palette.navy,
                   ),
                 ),
                 const Spacer(),
                 Switch(
                   value: overlayEnabled,
-                  activeTrackColor: AppColors.navy,
+                  activeTrackColor: palette.navy,
                   onChanged: _setOverlay,
                 ),
               ],
@@ -265,10 +262,12 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
       icon = Icons.sync;
     }
 
+    final palette = context.palette;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: palette.card,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -276,15 +275,15 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
         children: [
           Row(
             children: [
-              Icon(icon, color: AppColors.navy, size: 18),
+              Icon(icon, color: palette.navy, size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   heading,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.navy,
+                    color: palette.navy,
                   ),
                 ),
               ),
@@ -295,9 +294,9 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
             processedAt == null
                 ? detail
                 : '$detail Last update: ${formatTimestamp(processedAt)}.',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: AppColors.mist,
+              color: palette.mist,
               height: 1.4,
             ),
           ),
@@ -307,14 +306,15 @@ class _CameraPagesState extends ConsumerState<CameraPages> {
   }
 
   Widget _mapButton() {
+    final palette = context.palette;
     return SizedBox(
       width: double.infinity,
       height: 52,
       child: ElevatedButton(
         onPressed: () => Navigator.of(context).pushReplacementNamed(Routes.map),
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.navy,
-          foregroundColor: Colors.white,
+          backgroundColor: palette.navy,
+          foregroundColor: palette.paper,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
