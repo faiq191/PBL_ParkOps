@@ -78,7 +78,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   void _showImageOptions() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.paper,
+      backgroundColor: context.palette.paper,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -86,10 +86,13 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         child: Wrap(
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_library, color: AppColors.navy),
-              title: const Text(
+              leading: Icon(
+                Icons.photo_library,
+                color: sheetContext.palette.navy,
+              ),
+              title: Text(
                 'Choose from gallery',
-                style: TextStyle(color: AppColors.navy),
+                style: TextStyle(color: sheetContext.palette.navy),
               ),
               onTap: () {
                 Navigator.pop(sheetContext);
@@ -97,10 +100,13 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_camera, color: AppColors.navy),
-              title: const Text(
+              leading: Icon(
+                Icons.photo_camera,
+                color: sheetContext.palette.navy,
+              ),
+              title: Text(
                 'Take a photo',
-                style: TextStyle(color: AppColors.navy),
+                style: TextStyle(color: sheetContext.palette.navy),
               ),
               onTap: () {
                 Navigator.pop(sheetContext);
@@ -144,6 +150,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   }
 
   Widget _buildAvatar() {
+    final palette = context.palette;
     return Center(
       child: GestureDetector(
         onTap: _showImageOptions,
@@ -151,11 +158,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           children: [
             CircleAvatar(
               radius: 52,
-              backgroundColor: AppColors.line,
+              backgroundColor: palette.line,
               backgroundImage:
                   _avatarPath != null ? FileImage(File(_avatarPath!)) : null,
               child: _avatarPath == null
-                  ? const Icon(Icons.person, size: 52, color: AppColors.mist)
+                  ? Icon(Icons.person, size: 52, color: palette.mist)
                   : null,
             ),
             Positioned(
@@ -166,7 +173,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                 decoration: BoxDecoration(
                   color: AppColors.teal,
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.paper, width: 2),
+                  border: Border.all(color: palette.paper, width: 2),
                 ),
                 child: const Icon(
                   Icons.camera_alt,
@@ -183,15 +190,16 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Scaffold(
-      backgroundColor: AppColors.paper,
+      backgroundColor: palette.paper,
       appBar: AppBar(
-        backgroundColor: AppColors.paper,
+        backgroundColor: palette.paper,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.navy),
-        title: const Text(
+        iconTheme: IconThemeData(color: palette.navy),
+        title: Text(
           'Edit Profile',
-          style: TextStyle(color: AppColors.navy),
+          style: TextStyle(color: palette.navy),
         ),
         actions: [
           TextButton(
@@ -244,13 +252,14 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     String? errorText,
     ValueChanged<String>? onChanged,
   }) {
+    final palette = context.palette;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: AppColors.mist,
+          style: TextStyle(
+            color: palette.mist,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -260,14 +269,14 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
           onChanged: onChanged,
-          style: const TextStyle(color: AppColors.navy),
+          style: TextStyle(color: palette.navy),
           decoration: InputDecoration(
             filled: true,
-            fillColor: Colors.white,
+            fillColor: palette.card,
             errorText: errorText,
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.line),
+              borderSide: BorderSide(color: palette.line),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),

@@ -14,17 +14,18 @@ class ProfilePage extends ConsumerWidget {
     final user = ref.watch(profileProvider);
     final hasAvatar =
         user.avatarPath != null && File(user.avatarPath!).existsSync();
+    final palette = context.palette;
 
     return Scaffold(
-      backgroundColor: AppColors.paper,
+      backgroundColor: palette.paper,
       appBar: AppBar(
-        backgroundColor: AppColors.paper,
+        backgroundColor: palette.paper,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.navy),
-        title: const Text(
+        iconTheme: IconThemeData(color: palette.navy),
+        title: Text(
           'Profile',
           style: TextStyle(
-            color: AppColors.navy,
+            color: palette.navy,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -38,11 +39,11 @@ class ProfilePage extends ConsumerWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 40.0, horizontal: 20.0),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: palette.card,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.navy.withOpacity(0.05),
+                    color: palette.navy.withValues(alpha: 0.05),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -55,13 +56,13 @@ class ProfilePage extends ConsumerWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: AppColors.paper,
+                        color: palette.paper,
                         width: 6,
                       ),
                     ),
                     child: CircleAvatar(
                       radius: 50,
-                      backgroundColor: AppColors.mist,
+                      backgroundColor: palette.avatar,
                       backgroundImage:
                           hasAvatar ? FileImage(File(user.avatarPath!)) : null,
                       child: hasAvatar
@@ -70,49 +71,49 @@ class ProfilePage extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // User Name
                   Text(
                     user.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.navy,
+                      color: palette.navy,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
-                  
+
                   // NIM Badge
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.paper,
+                      color: palette.paper,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       user.nim,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.navy,
+                        color: palette.navy,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Bio
                   Text(
                     user.bio,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
-                      color: AppColors.mist,
+                      color: palette.mist,
                       height: 1.4,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 36),
-                  
+
                   // Edit Profile Button
                   SizedBox(
                     width: double.infinity,
@@ -127,7 +128,8 @@ class ProfilePage extends ConsumerWidget {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.navy,
+                        backgroundColor: palette.navy,
+                        foregroundColor: palette.paper,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -136,7 +138,6 @@ class ProfilePage extends ConsumerWidget {
                       child: const Text(
                         'Edit Profile',
                         style: TextStyle(
-                          color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
