@@ -27,7 +27,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   int _notificationRepeatDays = everyDayNotificationRepeatMask;
   NotificationRepeatPreset _notificationRepeatPreset =
       NotificationRepeatPreset.everyDay;
-  bool _darkModeSelected = false;
   bool _savingNotification = false;
 
   @override
@@ -52,8 +51,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _notificationRepeatPreset = notificationPresetFromMask(
       _notificationRepeatDays,
     );
-    _darkModeSelected =
-        preferences.getBool(SettingsPreferenceKeys.darkModeSelected) ?? false;
   }
 
   TimeOfDay get _notificationTime => TimeOfDay(
@@ -276,16 +273,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Future<void> _setDarkMode(bool isDark) async {
     final saved = await ref
-        .read(sharedPreferencesProvider)
-        .setBool(SettingsPreferenceKeys.darkModeSelected, isDark);
+        .read(darkModePreferenceProvider.notifier)
+        .setEnabled(isDark);
     if (!mounted) return;
     if (!saved) {
       _showMessage('Could not save the display preference.');
-      return;
     }
-    // This preference is stored for later; applying an app-wide theme is not
-    // included until the existing screens support dark and light themes.
-    setState(() => _darkModeSelected = isDark);
   }
 
   Future<void> _logout() async {
@@ -306,6 +299,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildRepeatDayChip(int chipIndex, String label) {
+    final palette = context.palette;
     final weekday = notificationWeekdayFromChipIndex(chipIndex);
     final active = _notificationRepeatDays & (1 << (weekday - 1)) != 0;
     return ChoiceChip(
@@ -316,11 +310,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       onSelected: _savingNotification
           ? null
           : (selected) => _setRepeatDay(chipIndex, selected),
-      selectedColor: AppColors.tealSoft,
-      backgroundColor: AppColors.paper,
-      side: BorderSide(color: active ? AppColors.teal : AppColors.line),
+      selectedColor: palette.tealSoft,
+      backgroundColor: palette.paper,
+      side: BorderSide(color: active ? palette.teal : palette.line),
       labelStyle: TextStyle(
-        color: active ? AppColors.teal : AppColors.navy,
+        color: active ? palette.teal : palette.navy,
         fontWeight: FontWeight.w600,
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -331,21 +325,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final cameraOverlayEnabled = ref.watch(cameraOverlayPreferenceProvider);
+    final darkMode = ref.watch(darkModePreferenceProvider);
+    final palette = context.palette;
     return Scaffold(
-      backgroundColor: AppColors.paper,
+      backgroundColor: palette.paper,
       appBar: const ParkOpsAppBar(section: 'PARKOPS', title: 'Settings'),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
         children: [
           _sectionTitle('Preferences'),
           _settingsCard([
-            const ListTile(
+            ListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
               title: Text(
                 'Camera preferences',
                 style: TextStyle(
-                  color: AppColors.navy,
+                  color: palette.navy,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -353,25 +349,25 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             SwitchListTile(
               key: const ValueKey('camera-overlay-setting'),
               contentPadding: EdgeInsets.zero,
-              title: const Text(
+              title: Text(
                 'Detection overlay',
                 style: TextStyle(
-                  color: AppColors.navy,
+                  color: palette.navy,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               subtitle: const Text('Show bay detection on the camera view'),
               value: cameraOverlayEnabled,
-              activeTrackColor: AppColors.navy,
+              activeTrackColor: palette.navy,
               onChanged: _setCameraOverlay,
             ),
-            const Divider(height: 1, color: AppColors.line),
+            Divider(height: 1, color: palette.line),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text(
+              title: Text(
                 'Favorite lot',
                 style: TextStyle(
-                  color: AppColors.navy,
+                  color: palette.navy,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -388,14 +384,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 onChanged: _setFavoriteLot,
               ),
             ),
-            const Divider(height: 1, color: AppColors.line),
+            Divider(height: 1, color: palette.line),
             ListTile(
               key: const ValueKey('notification-time-setting'),
               contentPadding: EdgeInsets.zero,
-              title: const Text(
+              title: Text(
                 'Daily notification',
                 style: TextStyle(
-                  color: AppColors.navy,
+                  color: palette.navy,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -405,14 +401,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 child: Text(_notificationTime.format(context)),
               ),
             ),
-            const Divider(height: 1, color: AppColors.line),
+            Divider(height: 1, color: palette.line),
             ListTile(
               key: const ValueKey('notification-repeat-setting'),
               contentPadding: EdgeInsets.zero,
-              title: const Text(
+              title: Text(
                 'Repeat',
                 style: TextStyle(
-                  color: AppColors.navy,
+                  color: palette.navy,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -460,19 +456,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ],
                 ),
               ),
-            const Divider(height: 1, color: AppColors.line),
+            Divider(height: 1, color: palette.line),
             SwitchListTile(
               key: const ValueKey('daily-notification-setting'),
               contentPadding: EdgeInsets.zero,
-              title: const Text(
+              title: Text(
                 'Send daily summary',
                 style: TextStyle(
-                  color: AppColors.navy,
+                  color: palette.navy,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               value: _dailyNotificationEnabled,
-              activeTrackColor: AppColors.navy,
+              activeTrackColor: palette.navy,
               onChanged: _savingNotification ? null : _toggleDailyNotification,
             ),
           ]),
@@ -481,16 +477,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           _settingsCard([
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text(
+              title: Text(
                 'Theme preference',
                 style: TextStyle(
-                  color: AppColors.navy,
+                  color: palette.navy,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              subtitle: const Text(
-                'Saved for later; does not change the app theme yet',
-              ),
+              subtitle: const Text('Switch between light and dark mode'),
               trailing: SegmentedButton<bool>(
                 key: const ValueKey('theme-preference-setting'),
                 segments: const [
@@ -505,7 +499,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     icon: Icon(Icons.dark_mode_outlined),
                   ),
                 ],
-                selected: {_darkModeSelected},
+                selected: {darkMode},
                 showSelectedIcon: false,
                 onSelectionChanged: (selection) =>
                     _setDarkMode(selection.first),
@@ -538,8 +532,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     padding: const EdgeInsets.only(left: 4, bottom: 10),
     child: Text(
       title,
-      style: const TextStyle(
-        color: AppColors.navy,
+      style: TextStyle(
+        color: context.palette.navy,
         fontSize: 17,
         fontWeight: FontWeight.w700,
       ),
@@ -547,7 +541,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   );
 
   Widget _settingsCard(List<Widget> children) => Material(
-    color: Colors.white,
+    color: context.palette.card,
     borderRadius: BorderRadius.circular(18),
     clipBehavior: Clip.antiAlias,
     child: Padding(

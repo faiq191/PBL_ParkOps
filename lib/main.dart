@@ -7,7 +7,9 @@ import 'core/providers.dart';
 import 'features/onboarding/presentation/pages/onboarding_pages.dart';
 import 'features/onboarding/presentation/providers/onboarding_providers.dart';
 import 'features/parking/presentation/pages/homepage.dart';
+import 'features/settings/presentation/providers/settings_providers.dart';
 import 'routes.dart';
+import 'theme/app_theme.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -28,17 +30,18 @@ Future<void> main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = ref.watch(darkModePreferenceProvider);
     return MaterialApp(
       title: 'ParkOps',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
       // All page-to-page navigation goes through named routes (see routes.dart)
       routes: Routes.all,
       home: const RootGate(),

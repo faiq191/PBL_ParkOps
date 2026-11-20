@@ -27,7 +27,7 @@ class MapPages extends ConsumerWidget {
     final zonesAsync = ref.watch(zonesStreamProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.paper,
+      backgroundColor: context.palette.paper,
       appBar: const ParkOpsAppBar(section: 'Map', title: 'Find Your Space'),
       body: zonesAsync.when(
         loading: () =>
@@ -69,11 +69,12 @@ class MapPages extends ConsumerWidget {
     final total = occupied.length;
     final occupiedCount = occupied.where((o) => o).length;
     final available = total - occupiedCount;
+    final palette = context.palette;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
       children: [
-        _mapCard(ref, zone, occupied),
+        _mapCard(context, ref, zone, occupied),
         const SizedBox(height: 14),
         Row(
           children: [
@@ -97,25 +98,31 @@ class MapPages extends ConsumerWidget {
               child: StatCard(
                 value: total.toString(),
                 label: 'Total bays',
-                color: AppColors.navy,
+                color: palette.navy,
               ),
             ),
           ],
         ),
         const SizedBox(height: 14),
-        _infoCard(zone, occupied, hasRealBays),
+        _infoCard(context, zone, occupied, hasRealBays),
         const SizedBox(height: 16),
         _cameraButton(context),
       ],
     );
   }
 
-  Widget _mapCard(WidgetRef ref, ParkingZone zone, List<bool> occupied) {
+  Widget _mapCard(
+    BuildContext context,
+    WidgetRef ref,
+    ParkingZone zone,
+    List<bool> occupied,
+  ) {
     // Lots listed in the card dropdown
     final zones = ref.watch(zonesListProvider);
+    final palette = context.palette;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: palette.card,
         borderRadius: BorderRadius.circular(16),
       ),
       clipBehavior: Clip.antiAlias,
@@ -126,7 +133,7 @@ class MapPages extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
             child: Row(
               children: [
-                const Icon(Icons.map_outlined, color: AppColors.navy, size: 20),
+                Icon(Icons.map_outlined, color: palette.navy, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
@@ -140,9 +147,9 @@ class MapPages extends ConsumerWidget {
                           isExpanded: true,
                           isDense: true,
                           borderRadius: BorderRadius.circular(10),
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.keyboard_arrow_down,
-                            color: AppColors.navy,
+                            color: palette.navy,
                           ),
                           items: [
                             for (final z in zones)
@@ -153,10 +160,10 @@ class MapPages extends ConsumerWidget {
                                       ? cameraFeeds[zones.indexOf(z)].title
                                       : z.name,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
-                                    color: AppColors.navy,
+                                    color: palette.navy,
                                   ),
                                 ),
                               ),
@@ -173,10 +180,7 @@ class MapPages extends ConsumerWidget {
                       const SizedBox(height: 2),
                       Text(
                         zone.location,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.mist,
-                        ),
+                        style: TextStyle(fontSize: 11, color: palette.mist),
                       ),
                     ],
                   ),
@@ -187,7 +191,7 @@ class MapPages extends ConsumerWidget {
           // Bay grid sits edge to edge in the card, like the camera preview.
           Container(
             width: double.infinity,
-            color: AppColors.paper,
+            color: palette.paper,
             padding: const EdgeInsets.all(10),
             child: Column(
               children: [
@@ -212,13 +216,13 @@ class MapPages extends ConsumerWidget {
               ],
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(
               children: [
-                _LegendDot(color: AppColors.ok, label: 'Available'),
-                SizedBox(width: 16),
-                _LegendDot(color: Color(0xFFD5DBE3), label: 'Occupied'),
+                const _LegendDot(color: AppColors.ok, label: 'Available'),
+                const SizedBox(width: 16),
+                _LegendDot(color: palette.line, label: 'Occupied'),
               ],
             ),
           ),
@@ -227,7 +231,12 @@ class MapPages extends ConsumerWidget {
     );
   }
 
-  Widget _infoCard(ParkingZone zone, List<bool> occupied, bool hasRealBays) {
+  Widget _infoCard(
+    BuildContext context,
+    ParkingZone zone,
+    List<bool> occupied,
+    bool hasRealBays,
+  ) {
     final firstFree = occupied.indexOf(false);
     final isFull = firstFree == -1;
 
@@ -241,11 +250,12 @@ class MapPages extends ConsumerWidget {
         ? 'Bay status updates automatically.'
         : 'Bay layout is estimated from the lot counts until per-bay data '
               'is available.';
+    final palette = context.palette;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: palette.card,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -253,15 +263,15 @@ class MapPages extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: AppColors.navy, size: 18),
+              Icon(icon, color: palette.navy, size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   heading,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.navy,
+                    color: palette.navy,
                   ),
                 ),
               ),
@@ -270,9 +280,9 @@ class MapPages extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             '$detail Last update: ${formatTimestamp(zone.lastUpdated)}.',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: AppColors.mist,
+              color: palette.mist,
               height: 1.4,
             ),
           ),
@@ -282,6 +292,7 @@ class MapPages extends ConsumerWidget {
   }
 
   Widget _cameraButton(BuildContext context) {
+    final palette = context.palette;
     return SizedBox(
       width: double.infinity,
       height: 52,
@@ -289,8 +300,8 @@ class MapPages extends ConsumerWidget {
         onPressed: () =>
             Navigator.of(context).pushReplacementNamed(Routes.camera),
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.navy,
-          foregroundColor: Colors.white,
+          backgroundColor: palette.navy,
+          foregroundColor: palette.paper,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -337,7 +348,7 @@ class _MapBay extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(4),
             // Free bays are solid green so they pop; occupied are muted grey.
-            color: occupied ? const Color(0xFFD5DBE3) : AppColors.ok,
+            color: occupied ? context.palette.line : AppColors.ok,
           ),
           child: Center(
             child: occupied
@@ -378,7 +389,7 @@ class _LegendDot extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(fontSize: 11, color: AppColors.navy),
+          style: TextStyle(fontSize: 11, color: context.palette.navy),
         ),
       ],
     );

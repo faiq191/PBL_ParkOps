@@ -30,7 +30,7 @@ class InformationPages extends ConsumerWidget {
         : _formatClock(processedAt);
 
     return Scaffold(
-      backgroundColor: AppColors.paper,
+      backgroundColor: context.palette.paper,
       appBar: const ParkOpsAppBar(section: 'PARKOPS', title: 'Information'),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
@@ -39,7 +39,7 @@ class InformationPages extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: const Color(0xFFE6EDF3),
+              color: context.palette.mutedSurface,
               borderRadius: BorderRadius.circular(22),
             ),
             child: Row(
@@ -48,17 +48,17 @@ class InformationPages extends ConsumerWidget {
                   width: 54,
                   height: 54,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: context.palette.card,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.location_on_outlined,
-                    color: Color(0xFF477AA5),
+                    color: context.palette.accent,
                     size: 28,
                   ),
                 ),
                 const SizedBox(width: 14),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -67,15 +67,15 @@ class InformationPages extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 19,
                           fontWeight: FontWeight.w500,
-                          color: AppColors.navy,
+                          color: context.palette.navy,
                         ),
                       ),
-                      SizedBox(height: 5),
+                      const SizedBox(height: 5),
                       Text(
                         'State Polytechnic of Malang',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF8493A3),
+                          color: context.palette.mist,
                         ),
                       ),
                     ],
@@ -92,27 +92,27 @@ class InformationPages extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Parking essentials',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.navy,
+                    color: context.palette.navy,
                   ),
                 ),
                 const SizedBox(height: 12),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.only(top: 4, right: 12),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4, right: 12),
                       child: Icon(
                         Icons.access_time,
-                        color: Color(0xFF477AA5),
+                        color: context.palette.accent,
                         size: 23,
                       ),
                     ),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -120,15 +120,15 @@ class InformationPages extends ConsumerWidget {
                             'Opening hours',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF8493A3),
+                              color: context.palette.mist,
                             ),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
                             '7:00 AM - 10:00 PM, Everyday',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.navy,
+                              color: context.palette.navy,
                             ),
                           ),
                         ],
@@ -137,7 +137,7 @@ class InformationPages extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                const Divider(height: 1, color: AppColors.line),
+                Divider(height: 1, color: context.palette.line),
               ],
             ),
           ),
@@ -151,13 +151,13 @@ class InformationPages extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'About detection',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w500,
-                          color: AppColors.navy,
+                          color: context.palette.navy,
                         ),
                       ),
                     ),
@@ -167,19 +167,23 @@ class InformationPages extends ConsumerWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.tealSoft,
+                        color: context.palette.tealSoft,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.circle, size: 7, color: AppColors.teal),
-                          SizedBox(width: 6),
+                          const Icon(
+                            Icons.circle,
+                            size: 7,
+                            color: AppColors.teal,
+                          ),
+                          const SizedBox(width: 6),
                           Text(
                             'Online',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.teal,
+                              color: context.palette.teal,
                             ),
                           ),
                         ],
@@ -188,21 +192,21 @@ class InformationPages extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'Camera footage is delayed by 1 minute. '
                   'Availability reflects that footage and may change '
                   'as cars arrive.',
                   style: TextStyle(
                     fontSize: 12,
                     height: 1.5,
-                    color: Color(0xFF8493A3),
+                    color: context.palette.mist,
                   ),
                 ),
                 const SizedBox(height: 14),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -211,15 +215,15 @@ class InformationPages extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.navy,
+                              color: context.palette.navy,
                             ),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
                             'Detection confidence',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Color(0xFF8493A3),
+                              color: context.palette.mist,
                             ),
                           ),
                         ],
@@ -231,18 +235,18 @@ class InformationPages extends ConsumerWidget {
                         children: [
                           Text(
                             footageTime,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.navy,
+                              color: context.palette.navy,
                             ),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
+                          Text(
                             'Latest footage time',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Color(0xFF8493A3),
+                              color: context.palette.mist,
                             ),
                           ),
                         ],
@@ -265,7 +269,7 @@ class InformationPages extends ConsumerWidget {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF477AA5),
+                backgroundColor: context.palette.accent,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -300,16 +304,19 @@ class InformationPages extends ConsumerWidget {
                 Navigator.of(context).pushReplacementNamed(Routes.onboarding);
               },
               borderRadius: BorderRadius.circular(14),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 6,
+                ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.replay_rounded,
-                      color: Color(0xFF477AA5),
+                      color: context.palette.accent,
                       size: 25,
                     ),
-                    SizedBox(width: 14),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,21 +326,25 @@ class InformationPages extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.navy,
+                              color: context.palette.navy,
                             ),
                           ),
-                          SizedBox(height: 5),
+                          const SizedBox(height: 5),
                           Text(
                             'See the introduction and permissions again',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF8493A3),
+                              color: context.palette.mist,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Icon(Icons.north_east, size: 19, color: Color(0xFF477AA5)),
+                    Icon(
+                      Icons.north_east,
+                      size: 19,
+                      color: context.palette.accent,
+                    ),
                   ],
                 ),
               ),
@@ -365,7 +376,7 @@ class _InfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.palette.card,
         borderRadius: BorderRadius.circular(21),
       ),
       child: child,
@@ -380,35 +391,36 @@ class _AdminCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return _InfoCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Administrator',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
-              color: AppColors.navy,
+              color: palette.navy,
             ),
           ),
           const SizedBox(height: 12),
           InkWell(
             onTap: () => Navigator.of(context).pushNamed(Routes.admin),
             borderRadius: BorderRadius.circular(8),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
                 children: [
                   Icon(
                     Icons.admin_panel_settings,
-                    color: Colors.black,
+                    color: palette.navy,
                     size: 23,
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Text(
                     'Open Admin Dashboard',
-                    style: TextStyle(fontSize: 13, color: AppColors.navy),
+                    style: TextStyle(fontSize: 13, color: palette.navy),
                   ),
                 ],
               ),

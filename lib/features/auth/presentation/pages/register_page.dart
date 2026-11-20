@@ -96,8 +96,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     final loading = ref.watch(authControllerProvider).isLoading;
+    final palette = context.palette;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: palette.paper,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -109,20 +110,20 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 onPressed: () => Navigator.of(context).maybePop(),
                 padding: EdgeInsets.zero,
                 alignment: Alignment.centerLeft,
-                icon: const Icon(
+                icon: Icon(
                   Icons.arrow_back_ios_new_rounded,
                   size: 20,
-                  color: AppColors.navy,
+                  color: palette.navy,
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Hello! Register to get\nstarted',
                 style: TextStyle(
                   fontSize: 28,
                   height: 1.25,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.navy,
+                  color: palette.navy,
                 ),
               ),
               const SizedBox(height: 36),
@@ -154,7 +155,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         ? Icons.visibility_off_outlined
                         : Icons.visibility_outlined,
                     size: 20,
-                    color: AppColors.mist,
+                    color: palette.mist,
                   ),
                 ),
               ),
@@ -173,7 +174,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         ? Icons.visibility_off_outlined
                         : Icons.visibility_outlined,
                     size: 20,
-                    color: AppColors.mist,
+                    color: palette.mist,
                   ),
                 ),
               ),
@@ -184,20 +185,20 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 child: ElevatedButton(
                   onPressed: loading ? null : _register,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.navy,
-                    foregroundColor: Colors.white,
+                    backgroundColor: palette.navy,
+                    foregroundColor: palette.paper,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   child: loading
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 22,
                           width: 22,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            color: Colors.white,
+                            color: palette.paper,
                           ),
                         )
                       : const Text(
@@ -208,22 +209,22 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 ),
               ),
               const SizedBox(height: 36),
-              const Row(
+              Row(
                 children: [
                   Expanded(
                       child: Divider(
-                          color: AppColors.line, thickness: 1)),
+                          color: palette.line, thickness: 1)),
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
                     child: Text(
                       'Or Register with',
                       style:
-                          TextStyle(fontSize: 12.5, color: Color(0xFF6A7685)),
+                          TextStyle(fontSize: 12.5, color: palette.mist),
                     ),
                   ),
                   Expanded(
                       child: Divider(
-                          color: AppColors.line, thickness: 1)),
+                          color: palette.line, thickness: 1)),
                 ],
               ),
               const SizedBox(height: 22),
@@ -233,21 +234,21 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     : () => _social(ref
                         .read(authControllerProvider.notifier)
                         .signInWithGoogle),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.g_mobiledata_rounded,
                       size: 36,
                       color: Color(0xFFDB4437),
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
                       'Continue with Google',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.navy,
+                        color: palette.navy,
                       ),
                     ),
                   ],
@@ -258,16 +259,16 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 child: GestureDetector(
                   onTap: () => Navigator.of(context)
                       .pushReplacementNamed(Routes.login),
-                  child: const Text.rich(
+                  child: Text.rich(
                     TextSpan(
                       text: "Already have an account?  ",
-                      style: TextStyle(fontSize: 13, color: Color(0xFF6A7685)),
+                      style: TextStyle(fontSize: 13, color: palette.mist),
                       children: [
                         TextSpan(
                           text: 'Login',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
-                            color: AppColors.navy,
+                            color: palette.navy,
                           ),
                         ),
                       ],
@@ -292,19 +293,20 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     TextInputType? keyboardType,
     String? errorText,
   }) {
+    final palette = context.palette;
     return TextField(
       controller: controller,
       obscureText: obscure,
       keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 14, color: AppColors.navy),
+      style: TextStyle(fontSize: 14, color: palette.navy),
       decoration: InputDecoration(
         errorText: errorText,
         hintText: hint,
-        hintStyle: const TextStyle(fontSize: 14, color: AppColors.mist),
-        prefixIcon: Icon(icon, size: 22, color: AppColors.navy),
+        hintStyle: TextStyle(fontSize: 14, color: palette.mist),
+        prefixIcon: Icon(icon, size: 22, color: palette.navy),
         suffixIcon: suffix,
         filled: true,
-        fillColor: const Color(0xFFF5F6F8),
+        fillColor: palette.fieldFill,
         contentPadding: const EdgeInsets.symmetric(vertical: 18),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -312,7 +314,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.navy, width: 1.2),
+          borderSide: BorderSide(color: palette.navy, width: 1.2),
         ),
       ),
     );
@@ -323,7 +325,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     required VoidCallback? onTap,
   }) {
     return Material(
-      color: const Color(0xFFF5F6F8),
+      color: context.palette.fieldFill,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),

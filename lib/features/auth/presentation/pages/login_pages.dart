@@ -99,8 +99,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final loading = ref.watch(authControllerProvider).isLoading;
+    final palette = context.palette;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: palette.paper,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -112,20 +113,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 onPressed: () => Navigator.of(context).maybePop(),
                 padding: EdgeInsets.zero,
                 alignment: Alignment.centerLeft,
-                icon: const Icon(
+                icon: Icon(
                   Icons.arrow_back_ios_new_rounded,
                   size: 20,
-                  color: AppColors.navy,
+                  color: palette.navy,
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Welcome Back! Glad\nto see you, Again!',
                 style: TextStyle(
                   fontSize: 28,
                   height: 1.25,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.navy,
+                  color: palette.navy,
                 ),
               ),
               const SizedBox(height: 44),
@@ -150,7 +151,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         ? Icons.visibility_off_outlined
                         : Icons.visibility_outlined,
                     size: 20,
-                    color: AppColors.mist,
+                    color: palette.mist,
                   ),
                 ),
               ),
@@ -158,12 +159,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: loading ? null : _forgotPassword,
-                  child: const Text(
+                  child: Text(
                     'Forgot password?',
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF6A7685),
+                      color: palette.mist,
                     ),
                   ),
                 ),
@@ -175,20 +176,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 child: ElevatedButton(
                   onPressed: loading ? null : _login,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.navy,
-                    foregroundColor: Colors.white,
+                    backgroundColor: palette.navy,
+                    foregroundColor: palette.paper,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   child: loading
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 22,
                           width: 22,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            color: Colors.white,
+                            color: palette.paper,
                           ),
                         )
                       : const Text(
@@ -199,22 +200,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ),
               ),
               const SizedBox(height: 36),
-              const Row(
+              Row(
                 children: [
                   Expanded(
                       child: Divider(
-                          color: AppColors.line, thickness: 1)),
+                          color: palette.line, thickness: 1)),
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
                     child: Text(
                       'Or Login with',
                       style:
-                          TextStyle(fontSize: 12.5, color: Color(0xFF6A7685)),
+                          TextStyle(fontSize: 12.5, color: palette.mist),
                     ),
                   ),
                   Expanded(
                       child: Divider(
-                          color: AppColors.line, thickness: 1)),
+                          color: palette.line, thickness: 1)),
                 ],
               ),
               const SizedBox(height: 22),
@@ -224,21 +225,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     : () => _social(ref
                         .read(authControllerProvider.notifier)
                         .signInWithGoogle),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.g_mobiledata_rounded,
                       size: 36,
                       color: Color(0xFFDB4437),
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
                       'Continue with Google',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.navy,
+                        color: palette.navy,
                       ),
                     ),
                   ],
@@ -249,16 +250,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 child: GestureDetector(
                   onTap: () => Navigator.of(context)
                       .pushReplacementNamed(Routes.register),
-                  child: const Text.rich(
+                  child: Text.rich(
                     TextSpan(
                       text: "Don't have an account?  ",
-                      style: TextStyle(fontSize: 13, color: Color(0xFF6A7685)),
+                      style: TextStyle(fontSize: 13, color: palette.mist),
                       children: [
                         TextSpan(
                           text: 'Sign Up',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
-                            color: AppColors.navy,
+                            color: palette.navy,
                           ),
                         ),
                       ],
@@ -283,19 +284,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     TextInputType? keyboardType,
     String? errorText,
   }) {
+    final palette = context.palette;
     return TextField(
       controller: controller,
       obscureText: obscure,
       keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 14, color: AppColors.navy),
+      style: TextStyle(fontSize: 14, color: palette.navy),
       decoration: InputDecoration(
         errorText: errorText,
         hintText: hint,
-        hintStyle: const TextStyle(fontSize: 14, color: AppColors.mist),
-        prefixIcon: Icon(icon, size: 22, color: AppColors.navy),
+        hintStyle: TextStyle(fontSize: 14, color: palette.mist),
+        prefixIcon: Icon(icon, size: 22, color: palette.navy),
         suffixIcon: suffix,
         filled: true,
-        fillColor: const Color(0xFFF5F6F8),
+        fillColor: palette.fieldFill,
         contentPadding: const EdgeInsets.symmetric(vertical: 18),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -303,7 +305,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.navy, width: 1.2),
+          borderSide: BorderSide(color: palette.navy, width: 1.2),
         ),
       ),
     );
@@ -314,7 +316,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     required VoidCallback? onTap,
   }) {
     return Material(
-      color: const Color(0xFFF5F6F8),
+      color: context.palette.fieldFill,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),

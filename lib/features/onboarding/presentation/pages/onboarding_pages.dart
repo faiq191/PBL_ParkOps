@@ -63,6 +63,8 @@ class _OnboardingPagesState extends ConsumerState<OnboardingPages> {
 
   /// "Grant Permission" button + live status, shown on the Permissions slide.
   Widget _buildPermissionAction() {
+    final grantedColor = AppColors.teal;
+    final inactiveColor = context.palette.navy;
     return Column(
       children: [
         SizedBox(
@@ -82,12 +84,12 @@ class _OnboardingPagesState extends ConsumerState<OnboardingPages> {
             ),
             style: OutlinedButton.styleFrom(
               foregroundColor: _permissionGranted
-                  ? Colors.green.shade700
-                  : AppColors.navy,
+                  ? grantedColor
+                  : inactiveColor,
               side: BorderSide(
                 color: _permissionGranted
-                    ? Colors.green.shade700
-                    : AppColors.navy,
+                    ? grantedColor
+                    : inactiveColor,
                 width: 1.4,
               ),
               shape: RoundedRectangleBorder(
@@ -104,7 +106,7 @@ class _OnboardingPagesState extends ConsumerState<OnboardingPages> {
           style: TextStyle(
             fontSize: 12.5,
             fontWeight: FontWeight.w700,
-            color: _permissionGranted ? Colors.green.shade700 : AppColors.navy,
+            color: _permissionGranted ? grantedColor : inactiveColor,
           ),
         ),
         const SizedBox(height: 14),
@@ -115,8 +117,8 @@ class _OnboardingPagesState extends ConsumerState<OnboardingPages> {
           child: ElevatedButton(
             onPressed: _next,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.navy,
-              foregroundColor: Colors.white,
+              backgroundColor: context.palette.navy,
+              foregroundColor: context.palette.paper,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
@@ -159,9 +161,10 @@ class _OnboardingPagesState extends ConsumerState<OnboardingPages> {
   @override
   Widget build(BuildContext context) {
     final isLast = _currentPage == _pages.length - 1;
+    final palette = context.palette;
 
     return Scaffold(
-      backgroundColor: AppColors.paper,
+      backgroundColor: palette.paper,
       body: SafeArea(
         child: Column(
           children: [
@@ -174,10 +177,10 @@ class _OnboardingPagesState extends ConsumerState<OnboardingPages> {
                     ? const SizedBox(height: 36)
                     : TextButton(
                         onPressed: _finish,
-                        child: const Text(
+                        child: Text(
                           'Skip',
                           style: TextStyle(
-                            color: AppColors.mist,
+                            color: palette.mist,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
@@ -204,7 +207,7 @@ class _OnboardingPagesState extends ConsumerState<OnboardingPages> {
                   width: i == _currentPage ? 22 : 8,
                   height: 8,
                   decoration: BoxDecoration(
-                    color: i == _currentPage ? AppColors.navy : AppColors.line,
+                    color: i == _currentPage ? palette.navy : palette.line,
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
@@ -233,8 +236,8 @@ class _OnboardingPagesState extends ConsumerState<OnboardingPages> {
       child: ElevatedButton(
         onPressed: _next,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.navy,
-          foregroundColor: Colors.white,
+          backgroundColor: context.palette.navy,
+          foregroundColor: context.palette.paper,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -249,6 +252,7 @@ class _OnboardingPagesState extends ConsumerState<OnboardingPages> {
   }
 
   Widget _buildLastPageActions() {
+    final palette = context.palette;
     return Row(
       children: [
         // Skip — go straight to the app without registering
@@ -258,8 +262,8 @@ class _OnboardingPagesState extends ConsumerState<OnboardingPages> {
             child: OutlinedButton(
               onPressed: _finish,
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.navy,
-                side: const BorderSide(color: AppColors.navy, width: 1.4),
+                foregroundColor: palette.navy,
+                side: BorderSide(color: palette.navy, width: 1.4),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -318,12 +322,14 @@ class _OnboardingSlide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 28),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Illustration bubble
+          // Illustration bubble (brand navy circle with amber icon, kept in
+          // both themes for identity)
           Container(
             width: 160,
             height: 160,
@@ -337,20 +343,20 @@ class _OnboardingSlide extends StatelessWidget {
           Text(
             data.title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w800,
-              color: AppColors.navy,
+              color: palette.navy,
             ),
           ),
           const SizedBox(height: 14),
           Text(
             data.description,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               height: 1.6,
-              color: AppColors.mist,
+              color: palette.mist,
             ),
           ),
         ],

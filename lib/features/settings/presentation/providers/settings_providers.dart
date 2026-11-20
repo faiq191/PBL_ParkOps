@@ -24,3 +24,26 @@ final cameraOverlayPreferenceProvider =
     NotifierProvider<CameraOverlayPreference, bool>(
       CameraOverlayPreference.new,
     );
+
+/// App-wide light/dark selection, persisted in SharedPreferences.
+///
+/// `false` = light, `true` = dark.
+class DarkModePreference extends Notifier<bool> {
+  @override
+  bool build() =>
+      ref
+          .watch(sharedPreferencesProvider)
+          .getBool(SettingsPreferenceKeys.darkModeSelected) ??
+      false;
+
+  Future<bool> setEnabled(bool isDark) async {
+    final saved = await ref
+        .read(sharedPreferencesProvider)
+        .setBool(SettingsPreferenceKeys.darkModeSelected, isDark);
+    if (saved) state = isDark;
+    return saved;
+  }
+}
+
+final darkModePreferenceProvider =
+    NotifierProvider<DarkModePreference, bool>(DarkModePreference.new);

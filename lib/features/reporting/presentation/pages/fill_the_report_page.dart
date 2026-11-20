@@ -152,35 +152,36 @@ class _FillTheReportPageState extends ConsumerState<FillTheReportPage> {
     required String hintText,
     Widget? prefixIcon,
   }) {
+    final palette = context.palette;
     return InputDecoration(
       hintText: hintText,
-      hintStyle: const TextStyle(
+      hintStyle: TextStyle(
         fontSize: 13,
-        color: Color(0xFF9AA7B4),
+        color: palette.mist,
       ),
       prefixIcon: prefixIcon,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: palette.card,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 16,
         vertical: 15,
       ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Color(0xFFE0E7ED),
+        borderSide: BorderSide(
+          color: palette.line,
         ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Color(0xFFE0E7ED),
+        borderSide: BorderSide(
+          color: palette.line,
         ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Color(0xFF477AA5),
+        borderSide: BorderSide(
+          color: palette.accent,
           width: 1.5,
         ),
       ),
@@ -207,10 +208,10 @@ class _FillTheReportPageState extends ConsumerState<FillTheReportPage> {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: AppColors.navy,
+              color: context.palette.navy,
             ),
           ),
           if (required)
@@ -228,19 +229,20 @@ class _FillTheReportPageState extends ConsumerState<FillTheReportPage> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Scaffold(
-      backgroundColor: AppColors.paper,
+      backgroundColor: palette.paper,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Fill the Report',
           style: TextStyle(
             fontSize: 19,
             fontWeight: FontWeight.w600,
-            color: AppColors.navy,
+            color: palette.navy,
           ),
         ),
-        backgroundColor: AppColors.paper,
-        foregroundColor: AppColors.navy,
+        backgroundColor: palette.paper,
+        foregroundColor: palette.navy,
         elevation: 0,
       ),
       body: SafeArea(
@@ -249,22 +251,22 @@ class _FillTheReportPageState extends ConsumerState<FillTheReportPage> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             children: [
-              const Text(
+              Text(
                 'Report a Problem',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.navy,
+                  color: palette.navy,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Tell us about the parking issue so our team '
                 'can review it.',
                 style: TextStyle(
                   fontSize: 13,
                   height: 1.5,
-                  color: Color(0xFF8493A3),
+                  color: palette.mist,
                 ),
               ),
               const SizedBox(height: 26),
@@ -276,9 +278,9 @@ class _FillTheReportPageState extends ConsumerState<FillTheReportPage> {
                 isExpanded: true,
                 decoration: _inputDecoration(
                   hintText: 'Select report type',
-                  prefixIcon: const Icon(
+                  prefixIcon: Icon(
                     Icons.report_problem_outlined,
-                    color: Color(0xFF477AA5),
+                    color: palette.accent,
                   ),
                 ),
                 items: _reportTypes.map((type) {
@@ -286,9 +288,9 @@ class _FillTheReportPageState extends ConsumerState<FillTheReportPage> {
                     value: type,
                     child: Text(
                       type,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.navy,
+                        color: palette.navy,
                       ),
                     ),
                   );
@@ -322,9 +324,9 @@ class _FillTheReportPageState extends ConsumerState<FillTheReportPage> {
                       hintText: zones.isEmpty
                           ? 'Loading parking lots...'
                           : 'Select parking lot',
-                      prefixIcon: const Icon(
+                      prefixIcon: Icon(
                         Icons.location_on_outlined,
-                        color: Color(0xFF477AA5),
+                        color: palette.accent,
                       ),
                     ),
                     items: zones.map((zone) {
@@ -332,9 +334,9 @@ class _FillTheReportPageState extends ConsumerState<FillTheReportPage> {
                         value: zone.id,
                         child: Text(
                           zone.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: AppColors.navy,
+                            color: palette.navy,
                           ),
                         ),
                       );
@@ -384,11 +386,11 @@ class _FillTheReportPageState extends ConsumerState<FillTheReportPage> {
 
               // Photo upload
               _sectionLabel('Upload Photo (Optional)'),
-              const Text(
+              Text(
                 'Add a photo to help explain the parking issue.',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Color(0xFF8493A3),
+                  color: palette.mist,
                 ),
               ),
               const SizedBox(height: 12),
@@ -404,34 +406,34 @@ class _FillTheReportPageState extends ConsumerState<FillTheReportPage> {
                       horizontal: 16,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: palette.card,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: const Color(0xFFCCD9E4),
+                        color: palette.line,
                       ),
                     ),
-                    child: const Column(
+                    child: Column(
                       children: [
                         Icon(
                           Icons.add_photo_alternate_outlined,
                           size: 36,
-                          color: Color(0xFF477AA5),
+                          color: palette.accent,
                         ),
-                        SizedBox(height: 10),
+                        const SizedBox(height: 10),
                         Text(
                           'Choose Photo',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF477AA5),
+                            color: palette.accent,
                           ),
                         ),
-                        SizedBox(height: 5),
+                        const SizedBox(height: 5),
                         Text(
                           'Select an image from your gallery',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Color(0xFF8493A3),
+                            color: palette.mist,
                           ),
                         ),
                       ],
@@ -456,24 +458,26 @@ class _FillTheReportPageState extends ConsumerState<FillTheReportPage> {
                           onPressed: _removeImage,
                           tooltip: 'Remove photo',
                           style: IconButton.styleFrom(
-                            backgroundColor: Colors.white,
+                            backgroundColor: palette.card,
                             foregroundColor: Colors.redAccent,
                           ),
                           icon: const Icon(Icons.delete_outline),
                         ),
                       ),
-                      Positioned(
+                      const Positioned(
                         bottom: 0,
                         left: 0,
                         right: 0,
-                        child: Container(
+                        child: ColoredBox(
                           color: Colors.black54,
-                          padding: const EdgeInsets.all(10),
-                          child: const Text(
-                            'Photo selected',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
+                          child: Padding(
+                            padding: EdgeInsets.all(10),
+                            child: Text(
+                              'Photo selected',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ),
@@ -490,9 +494,8 @@ class _FillTheReportPageState extends ConsumerState<FillTheReportPage> {
                 child: ElevatedButton(
                   onPressed: _isSubmitting ? null : _submitReport,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF477AA5),
+                    backgroundColor: palette.accent,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: const Color(0xFF9AAFC1),
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
