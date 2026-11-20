@@ -34,6 +34,7 @@ class AppPalette {
     required this.card,
     required this.avatar,
     required this.navIndicator,
+    required this.fieldFill,
   });
 
   /// Primary text / strongest foreground color.
@@ -63,6 +64,9 @@ class AppPalette {
   /// Bottom navigation selected indicator.
   final Color navIndicator;
 
+  /// Text-field / social-button fill.
+  final Color fieldFill;
+
   static const light = AppPalette(
     navy: AppColors.navy,
     paper: AppColors.paper,
@@ -73,6 +77,7 @@ class AppPalette {
     card: Colors.white,
     avatar: Color(0xFFDDE4EC),
     navIndicator: Color(0xFFDDE4EC),
+    fieldFill: Color(0xFFF5F6F8),
   );
 
   static const dark = AppPalette(
@@ -85,6 +90,7 @@ class AppPalette {
     card: Color(0xFF16202E),
     avatar: Color(0xFF26313F),
     navIndicator: Color(0xFF26313F),
+    fieldFill: Color(0xFF1C2735),
   );
 
   static AppPalette of(BuildContext context) =>
