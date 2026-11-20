@@ -27,7 +27,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   int _notificationRepeatDays = everyDayNotificationRepeatMask;
   NotificationRepeatPreset _notificationRepeatPreset =
       NotificationRepeatPreset.everyDay;
-  bool _darkModeSelected = false;
   bool _savingNotification = false;
 
   @override
@@ -52,8 +51,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _notificationRepeatPreset = notificationPresetFromMask(
       _notificationRepeatDays,
     );
-    _darkModeSelected =
-        preferences.getBool(SettingsPreferenceKeys.darkModeSelected) ?? false;
   }
 
   TimeOfDay get _notificationTime => TimeOfDay(
@@ -276,16 +273,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Future<void> _setDarkMode(bool isDark) async {
     final saved = await ref
-        .read(sharedPreferencesProvider)
-        .setBool(SettingsPreferenceKeys.darkModeSelected, isDark);
+        .read(darkModePreferenceProvider.notifier)
+        .setEnabled(isDark);
     if (!mounted) return;
     if (!saved) {
       _showMessage('Could not save the display preference.');
-      return;
     }
-    // This preference is stored for later; applying an app-wide theme is not
-    // included until the existing screens support dark and light themes.
-    setState(() => _darkModeSelected = isDark);
   }
 
   Future<void> _logout() async {
@@ -331,6 +324,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final cameraOverlayEnabled = ref.watch(cameraOverlayPreferenceProvider);
+    final darkMode = ref.watch(darkModePreferenceProvider);
     return Scaffold(
       backgroundColor: AppColors.paper,
       appBar: const ParkOpsAppBar(section: 'PARKOPS', title: 'Settings'),
@@ -488,9 +482,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              subtitle: const Text(
-                'Saved for later; does not change the app theme yet',
-              ),
+              subtitle: const Text('Switch between light and dark mode'),
               trailing: SegmentedButton<bool>(
                 key: const ValueKey('theme-preference-setting'),
                 segments: const [
@@ -505,7 +497,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     icon: Icon(Icons.dark_mode_outlined),
                   ),
                 ],
-                selected: {_darkModeSelected},
+                selected: {darkMode},
                 showSelectedIcon: false,
                 onSelectionChanged: (selection) =>
                     _setDarkMode(selection.first),
