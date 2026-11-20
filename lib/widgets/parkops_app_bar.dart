@@ -34,10 +34,11 @@ class ParkOpsAppBar extends ConsumerWidget implements PreferredSizeWidget {
     final user = ref.watch(profileProvider);
     final hasAvatar =
         user.avatarPath != null && File(user.avatarPath!).existsSync();
+    final palette = context.palette;
 
     return AppBar(
       automaticallyImplyLeading: false,
-      backgroundColor: AppColors.paper,
+      backgroundColor: palette.paper,
       elevation: 0,
       scrolledUnderElevation: 0,
       toolbarHeight: kToolbarHeight + 8,
@@ -46,15 +47,15 @@ class ParkOpsAppBar extends ConsumerWidget implements PreferredSizeWidget {
         children: [
           Text(
             section,
-            style: const TextStyle(fontSize: 11, color: AppColors.mist),
+            style: TextStyle(fontSize: 11, color: palette.mist),
           ),
           const SizedBox(height: 2),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: AppColors.navy,
+              color: palette.navy,
             ),
           ),
         ],
@@ -65,8 +66,8 @@ class ParkOpsAppBar extends ConsumerWidget implements PreferredSizeWidget {
           padding: EdgeInsets.zero,
           position: PopupMenuPosition.under,
           offset: const Offset(-12, 8),
-          color: AppColors.paper,
-          surfaceTintColor: AppColors.paper,
+          color: palette.paper,
+          surfaceTintColor: palette.paper,
           onSelected: (value) {
             // Updated routing logic to handle the profile selection
             if (value == 'profile') {
@@ -80,14 +81,14 @@ class ParkOpsAppBar extends ConsumerWidget implements PreferredSizeWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          itemBuilder: (context) => const [
+          itemBuilder: (context) => [
             PopupMenuItem(
               value: 'profile',
               child: Row(
                 children: [
-                  Icon(Icons.person_outline_rounded, color: AppColors.navy),
-                  SizedBox(width: 12),
-                  Text('Profile', style: TextStyle(color: AppColors.navy)),
+                  Icon(Icons.person_outline_rounded, color: palette.navy),
+                  const SizedBox(width: 12),
+                  Text('Profile', style: TextStyle(color: palette.navy)),
                 ],
               ),
             ),
@@ -95,9 +96,9 @@ class ParkOpsAppBar extends ConsumerWidget implements PreferredSizeWidget {
               value: 'settings',
               child: Row(
                 children: [
-                  Icon(Icons.settings_rounded, color: AppColors.navy),
-                  SizedBox(width: 12),
-                  Text('Settings', style: TextStyle(color: AppColors.navy)),
+                  Icon(Icons.settings_rounded, color: palette.navy),
+                  const SizedBox(width: 12),
+                  Text('Settings', style: TextStyle(color: palette.navy)),
                 ],
               ),
             ),
@@ -105,9 +106,9 @@ class ParkOpsAppBar extends ConsumerWidget implements PreferredSizeWidget {
               value: 'logout',
               child: Row(
                 children: [
-                  Icon(Icons.logout_rounded, color: AppColors.navy),
-                  SizedBox(width: 12),
-                  Text('Logout', style: TextStyle(color: AppColors.navy)),
+                  Icon(Icons.logout_rounded, color: palette.navy),
+                  const SizedBox(width: 12),
+                  Text('Logout', style: TextStyle(color: palette.navy)),
                 ],
               ),
             ),

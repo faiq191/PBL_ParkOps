@@ -31,11 +31,12 @@ class AppBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return NavigationBar(
       selectedIndex: currentIndex,
       height: 68,
-      backgroundColor: AppColors.paper,
-      indicatorColor: const Color(0xFFDDE4EC),
+      backgroundColor: palette.paper,
+      indicatorColor: palette.navIndicator,
       onDestinationSelected: (i) => _go(context, i),
       destinations: const [
         NavigationDestination(
