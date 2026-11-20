@@ -35,6 +35,8 @@ class AppPalette {
     required this.avatar,
     required this.navIndicator,
     required this.fieldFill,
+    required this.mutedSurface,
+    required this.accent,
   });
 
   /// Primary text / strongest foreground color.
@@ -67,6 +69,12 @@ class AppPalette {
   /// Text-field / social-button fill.
   final Color fieldFill;
 
+  /// Tinted informational surface (secondary "card" tone).
+  final Color mutedSurface;
+
+  /// Secondary accent blue used in information and reporting screens.
+  final Color accent;
+
   static const light = AppPalette(
     navy: AppColors.navy,
     paper: AppColors.paper,
@@ -78,6 +86,8 @@ class AppPalette {
     avatar: Color(0xFFDDE4EC),
     navIndicator: Color(0xFFDDE4EC),
     fieldFill: Color(0xFFF5F6F8),
+    mutedSurface: Color(0xFFE6EDF3),
+    accent: Color(0xFF477AA5),
   );
 
   static const dark = AppPalette(
@@ -91,6 +101,8 @@ class AppPalette {
     avatar: Color(0xFF26313F),
     navIndicator: Color(0xFF26313F),
     fieldFill: Color(0xFF1C2735),
+    mutedSurface: Color(0xFF1F2A38),
+    accent: Color(0xFF6FA8D6),
   );
 
   static AppPalette of(BuildContext context) =>

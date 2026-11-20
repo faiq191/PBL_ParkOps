@@ -17,9 +17,9 @@ class AdminGuard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authStateProvider);
     return auth.when(
-      loading: () => const Scaffold(
-        backgroundColor: AppColors.paper,
-        body: Center(child: CircularProgressIndicator()),
+      loading: () => Scaffold(
+        backgroundColor: context.palette.paper,
+        body: const Center(child: CircularProgressIndicator()),
       ),
       error: (_, __) => const _Notice(
         icon: Icons.error_outline_rounded,
@@ -82,12 +82,13 @@ class _Notice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Scaffold(
-      backgroundColor: AppColors.paper,
+      backgroundColor: palette.paper,
       appBar: AppBar(
-        backgroundColor: AppColors.paper,
+        backgroundColor: palette.paper,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.navy),
+        iconTheme: IconThemeData(color: palette.navy),
       ),
       body: Center(
         child: Padding(
@@ -95,29 +96,30 @@ class _Notice extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 56, color: AppColors.navy),
+              Icon(icon, size: 56, color: palette.navy),
               const SizedBox(height: 16),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.navy,
+                  color: palette.navy,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: AppColors.mist),
+                style: TextStyle(fontSize: 14, color: palette.mist),
               ),
               if (actionLabel != null) ...[
                 const SizedBox(height: 24),
                 FilledButton(
                   onPressed: onAction,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.navy,
+                    backgroundColor: palette.navy,
+                    foregroundColor: palette.paper,
                     minimumSize: const Size.fromHeight(48),
                   ),
                   child: Text(actionLabel!),

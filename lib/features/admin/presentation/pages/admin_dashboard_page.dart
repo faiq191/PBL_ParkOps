@@ -9,8 +9,6 @@ import '../../../parking/presentation/providers/parking_providers.dart';
 import '../../../reporting/data/report_repository.dart';
 import '../../../reporting/presentation/providers/report_providers.dart';
 
-const Color _muted = Color(0xFF8493A3);
-
 const List<String> _months = [
   'Jan',
   'Feb',
@@ -47,14 +45,14 @@ class AdminDashboardPage extends ConsumerWidget {
     final zonesAsync = ref.watch(zonesStreamProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.paper,
+      backgroundColor: context.palette.paper,
       appBar: const ParkOpsAppBar(section: 'MANAGEMENT', title: 'Admin'),
       body: zonesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const Center(
+        error: (_, __) => Center(
           child: Text(
             'Could not load parking data.',
-            style: TextStyle(color: _muted),
+            style: TextStyle(color: context.palette.mist),
           ),
         ),
         data: (zones) => ListView(
@@ -92,11 +90,11 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10, left: 2),
       child: Text(
         text.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.6,
-          color: _muted,
+          color: context.palette.mist,
         ),
       ),
     );
@@ -111,7 +109,10 @@ class _EmptyNote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Card(
-      child: Text(text, style: const TextStyle(fontSize: 12, color: _muted)),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 12, color: context.palette.mist),
+      ),
     );
   }
 }
@@ -128,9 +129,9 @@ class _Card extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.palette.card,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: context.palette.line),
       ),
       child: child,
     );
@@ -319,6 +320,7 @@ class _LotCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final total = zone.totalSlots;
     final occupied = zone.occupiedSlots.clamp(0, total < 0 ? 0 : total).toInt();
     final ratio = total == 0 ? 0.0 : occupied / total;
@@ -335,17 +337,17 @@ class _LotCard extends StatelessWidget {
                   children: [
                     Text(
                       zone.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.navy,
+                        color: palette.navy,
                       ),
                     ),
                     if (zone.location.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
                         zone.location,
-                        style: const TextStyle(fontSize: 11, color: _muted),
+                        style: TextStyle(fontSize: 11, color: palette.mist),
                       ),
                     ],
                   ],
@@ -377,7 +379,7 @@ class _LotCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: ratio,
               minHeight: 7,
-              backgroundColor: AppColors.line,
+              backgroundColor: palette.line,
               valueColor: AlwaysStoppedAnimation(_color),
             ),
           ),
@@ -386,23 +388,23 @@ class _LotCard extends StatelessWidget {
             children: [
               Text(
                 '${zone.availableSlots} of $total free',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.navy,
+                  color: palette.navy,
                 ),
               ),
               const Spacer(),
               Text(
                 '${(ratio * 100).round()}% occupied',
-                style: const TextStyle(fontSize: 11, color: _muted),
+                style: TextStyle(fontSize: 11, color: palette.mist),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             'Updated ${_formatDateTime(zone.lastUpdated)}',
-            style: const TextStyle(fontSize: 10, color: _muted),
+            style: TextStyle(fontSize: 10, color: palette.mist),
           ),
         ],
       ),
@@ -415,6 +417,7 @@ class _CameraCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.palette;
     final feed = ref.watch(selectedCameraFeedProvider);
     final inference = ref.watch(cameraInferenceStreamProvider(feed.id));
 
@@ -433,10 +436,10 @@ class _CameraCard extends ConsumerWidget {
               Expanded(
                 child: Text(
                   feed.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.navy,
+                    color: palette.navy,
                   ),
                 ),
               ),
@@ -444,20 +447,20 @@ class _CameraCard extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           inference.when(
-            loading: () => const Text(
+            loading: () => Text(
               'Checking the camera...',
-              style: TextStyle(fontSize: 11, color: _muted),
+              style: TextStyle(fontSize: 11, color: palette.mist),
             ),
-            error: (_, __) => const Text(
+            error: (_, __) => Text(
               'Could not load camera data.',
-              style: TextStyle(fontSize: 11, color: _muted),
+              style: TextStyle(fontSize: 11, color: palette.mist),
             ),
             data: (result) {
               final processed = result?.processedAt;
               if (result == null || processed == null) {
-                return const Text(
+                return Text(
                   'No processed frame yet.',
-                  style: TextStyle(fontSize: 11, color: _muted),
+                  style: TextStyle(fontSize: 11, color: palette.mist),
                 );
               }
               return Row(
@@ -477,16 +480,16 @@ class _CameraCard extends ConsumerWidget {
                       children: [
                         Text(
                           _formatDateTime(processed),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.navy,
+                            color: palette.navy,
                           ),
                         ),
                         const SizedBox(height: 2),
-                        const Text(
+                        Text(
                           'Last processed',
-                          style: TextStyle(fontSize: 10, color: _muted),
+                          style: TextStyle(fontSize: 10, color: palette.mist),
                         ),
                       ],
                     ),
@@ -509,20 +512,21 @@ class _CameraFact extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: AppColors.navy,
+              color: palette.navy,
             ),
           ),
           const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: 10, color: _muted)),
+          Text(label, style: TextStyle(fontSize: 10, color: palette.mist)),
         ],
       ),
     );
@@ -560,6 +564,7 @@ class _ReportTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     final created = report.createdAt;
     return _Card(
       child: Row(
@@ -576,10 +581,10 @@ class _ReportTile extends StatelessWidget {
               children: [
                 Text(
                   '${report.zoneName} - ${report.type}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.navy,
+                    color: palette.navy,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -587,16 +592,16 @@ class _ReportTile extends StatelessWidget {
                   report.description,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     height: 1.4,
-                    color: Color(0xFF526477),
+                    color: palette.mist,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   created == null ? 'Just now' : _formatDateTime(created),
-                  style: const TextStyle(fontSize: 10, color: _muted),
+                  style: TextStyle(fontSize: 10, color: palette.mist),
                 ),
               ],
             ),
