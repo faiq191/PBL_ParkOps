@@ -19,15 +19,19 @@ the laptop's local network. Each camera result is stored in
 minutes old, the Camera tab marks it as stale and tells users to ask the laptop
 operator to start the worker.
 
-## 1. Put the model on your computer
+## 1. Put the model files on your computer
 
-Keep the weights out of Git. The default location is:
+Keep model weights out of Git. Put the `.pt` files in:
 
 ```text
-cloud-inference/models/best.pt
+cloud-inference/models/
 ```
 
-Alternatively, store the file elsewhere and pass its path with `--model`.
+The worker will show a numbered menu at startup. The current model files are
+`parkops_gray.pt`, `parkops_normal.pt`, and `parkops_polinema_merged.pt`. The
+menu is sorted by filename and lists the actual files found in this folder.
+Choose one by entering its number. To skip the menu, pass a model path with
+`--model`.
 
 ## 2. Install local dependencies (Windows PowerShell)
 
@@ -87,10 +91,9 @@ From the repository root, run:
 .\cloud-inference\.venv\Scripts\python.exe .\cloud-inference\run_local.py --model "D:\path\to\best.pt" --show-classes
 ```
 
-The output lists the exact class labels in the weights. Use those labels for
-`--vehicle-labels` and `--empty-space-labels`. The defaults are examples only;
-if a label does not match exactly (ignoring case, spaces, `_`, and `-`), it
-will not contribute to that count.
+The output should show the model's two labels: `busy` and `empty`. The worker
+counts only the exact, case-sensitive label `busy` as vehicles and `empty` as
+empty spaces.
 
 ## 5. Run one inference, then keep it running
 
@@ -98,19 +101,15 @@ First try one frame/result:
 
 ```powershell
 .\cloud-inference\.venv\Scripts\python.exe .\cloud-inference\run_local.py `
-  --model "D:\path\to\best.pt" `
   --project pblparkopsfaiq `
-  --vehicle-labels "car,vehicle,truck,bus,motorcycle" `
-  --empty-space-labels "empty,empty_space" `
   --once
 ```
 
-Replace the label examples with the model's actual labels. To keep the worker
-available for your teammates, run the same command without `--once`. It starts
-immediately, then processes all three camera feeds every 30 seconds. Press
-**Ctrl+C** to stop. If the model is at the default
-`cloud-inference\models\best.pt`, `--model` can be omitted. The
-`--camera-url` option overrides only the 17916 feed.
+Select a model when prompted. To keep the worker available for your teammates,
+run the same command without `--once`. It starts immediately, then processes
+all three camera feeds every 30 seconds. Press **Ctrl+C** to stop. To run
+without a prompt, pass `--model "D:\path\to\model.pt"`. The `--camera-url`
+option overrides only the 17916 feed.
 
 The worker logs the inference device after each successful camera frame. It
 should say `cuda:0` when using the first NVIDIA GPU.

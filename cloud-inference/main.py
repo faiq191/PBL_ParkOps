@@ -42,7 +42,7 @@ CAMERA_ID = CAMERA_SOURCES[0].camera_id
 CAMERA_TITLE = CAMERA_SOURCES[0].title
 DEFAULT_CAMERA_URL = CAMERA_SOURCES[0].stream_url
 DEFAULT_PROJECT_ID = "pblparkopsfaiq"
-DEFAULT_MODEL_PATH = Path(__file__).parent / "models" / "best.pt"
+DEFAULT_MODEL_PATH = Path(__file__).parent / "models" / "best_gray.pt"
 MAX_FRAME_BYTES = 8 * 1024 * 1024
 MAX_PREVIEW_BYTES = 512 * 1024
 MAX_PREVIEW_WIDTH = 640
@@ -54,11 +54,6 @@ _firestore_client = None
 
 class CameraFrameError(RuntimeError):
     pass
-
-
-def _configured_names(environment_key: str, defaults: str) -> set[str]:
-    raw_names = os.getenv(environment_key, defaults)
-    return {name.strip() for name in raw_names.split(",") if name.strip()}
 
 
 def _get_model() -> YOLO:
@@ -172,16 +167,7 @@ def _detect(frame: np.ndarray) -> tuple[dict, list[dict]]:
                 }
             )
 
-    counts = summarize_detections(
-        detections,
-        vehicle_labels=_configured_names(
-            "VEHICLE_CLASS_NAMES", "car,vehicle,truck,bus,motorcycle"
-        ),
-        empty_space_labels=_configured_names(
-            "EMPTY_SPACE_CLASS_NAMES",
-            "empty,empty space,empty slot,empty parking space,empty bay,free space,vacant",
-        ),
-    )
+    counts = summarize_detections(detections)
     return counts, detections[:100]
 
 

@@ -31,8 +31,6 @@ class CameraSourceTests(unittest.TestCase):
             project="pblparkopsfaiq",
             confidence=0.25,
             device="0",
-            vehicle_labels="car",
-            empty_space_labels="empty",
             show_classes=False,
             once=True,
             interval=30,

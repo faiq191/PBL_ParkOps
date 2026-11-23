@@ -37,8 +37,10 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument(
         "--model",
         type=Path,
-        default=DEFAULT_MODEL_PATH,
-        help="Path to best.pt (default: cloud-inference/models/best.pt)",
+        help=(
+            "Path to model weights; choose interactively from "
+            "cloud-inference/models if omitted"
+        ),
     )
     parser.add_argument(
         "--camera-url",
@@ -68,19 +70,6 @@ def _arguments() -> argparse.Namespace:
         help="Inference device: 0 selects the first CUDA GPU; use cpu to force CPU.",
     )
     parser.add_argument(
-        "--vehicle-labels",
-        default="car,vehicle,truck,bus,motorcycle",
-        help="Comma-separated model labels to count as vehicles",
-    )
-    parser.add_argument(
-        "--empty-space-labels",
-        default=(
-            "empty,empty space,empty slot,empty parking space,"
-            "empty bay,free space,vacant"
-        ),
-        help="Comma-separated model labels to count as empty spaces",
-    )
-    parser.add_argument(
         "--show-classes",
         action="store_true",
         help="Load the model, print its class labels, and exit",
@@ -93,24 +82,49 @@ def _arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _choose_model(models_directory: Path) -> Path:
+    models = sorted(
+        models_directory.glob("*.pt"),
+        key=lambda path: path.name.casefold(),
+    )
+    if not models:
+        raise FileNotFoundError(f"No .pt model files found in {models_directory}")
+
+    print("Choose a YOLO model:")
+    for number, model in enumerate(models, start=1):
+        print(f"{number}. {model.name}")
+
+    while True:
+        try:
+            choice = input(f"Enter a number (1-{len(models)}): ").strip()
+        except EOFError as error:
+            raise RuntimeError(
+                "Model selection needs interactive input; "
+                "pass --model with a path."
+            ) from error
+        if choice.isdigit() and 1 <= int(choice) <= len(models):
+            return models[int(choice) - 1]
+        print(f"Invalid choice. Enter a number from 1 to {len(models)}.")
+
+
 def main() -> None:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
     )
     args = _arguments()
-    model_path = args.model.expanduser().resolve()
+    model_path = (
+        args.model.expanduser()
+        if args.model is not None
+        else _choose_model(DEFAULT_MODEL_PATH.parent)
+    ).resolve()
     if not model_path.is_file():
         raise FileNotFoundError(f"Model weights not found: {model_path}")
 
     os.environ["MODEL_PATH"] = str(model_path)
-    os.environ["CAMERA_URL"] = args.camera_url
     os.environ["GOOGLE_CLOUD_PROJECT"] = args.project
     os.environ["CONFIDENCE_THRESHOLD"] = str(args.confidence)
     os.environ["YOLO_DEVICE"] = args.device
-    os.environ["VEHICLE_CLASS_NAMES"] = args.vehicle_labels
-    os.environ["EMPTY_SPACE_CLASS_NAMES"] = args.empty_space_labels
-
     if args.show_classes:
         for class_id, label in get_model_classes().items():
             print(f"{class_id}: {label}")
