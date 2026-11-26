@@ -8,6 +8,7 @@ import '../../../../features/parking/data/seed_zones.dart';
 import '../../../../routes.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../widgets/parkops_app_bar.dart';
+import '../../data/notification_repeat.dart';
 import '../../data/parking_notification_service.dart';
 import '../../data/settings_preference_keys.dart';
 import '../providers/settings_providers.dart';
@@ -23,7 +24,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _favoriteLotId = seedZones.first.id;
   bool _dailyNotificationEnabled = false;
   int _notificationMinuteOfDay = 8 * 60;
-  bool _darkModeSelected = false;
+  int _notificationRepeatDays = everyDayNotificationRepeatMask;
+  NotificationRepeatPreset _notificationRepeatPreset =
+      NotificationRepeatPreset.everyDay;
   bool _savingNotification = false;
 
   @override
@@ -42,8 +45,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _notificationMinuteOfDay =
         preferences.getInt(SettingsPreferenceKeys.notificationMinuteOfDay) ??
         8 * 60;
-    _darkModeSelected =
-        preferences.getBool(SettingsPreferenceKeys.darkModeSelected) ?? false;
+    _notificationRepeatDays =
+        preferences.getInt(SettingsPreferenceKeys.notificationRepeatDays) ??
+        everyDayNotificationRepeatMask;
+    _notificationRepeatPreset = notificationPresetFromMask(
+      _notificationRepeatDays,
+    );
   }
 
   TimeOfDay get _notificationTime => TimeOfDay(
@@ -68,6 +75,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       await _saveNotificationSettings(
         favoriteLotId: lotId,
         minuteOfDay: _notificationMinuteOfDay,
+        repeatDays: _notificationRepeatDays,
       );
       return;
     }
@@ -93,6 +101,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       await _saveNotificationSettings(
         favoriteLotId: _favoriteLotId,
         minuteOfDay: minuteOfDay,
+        repeatDays: _notificationRepeatDays,
       );
       return;
     }
@@ -105,6 +114,58 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       return;
     }
     setState(() => _notificationMinuteOfDay = minuteOfDay);
+  }
+
+  Future<void> _setRepeatPreset(NotificationRepeatPreset? preset) async {
+    if (preset == null) return;
+    final customMask = isValidNotificationRepeatMask(_notificationRepeatDays)
+        ? _notificationRepeatDays
+        : weekdaysNotificationRepeatMask;
+    final repeatDays = notificationMaskForPreset(
+      preset,
+      customMask: customMask,
+    );
+    setState(() {
+      _notificationRepeatPreset = preset;
+      _notificationRepeatDays = repeatDays;
+    });
+    await _applyRepeatDays(repeatDays);
+  }
+
+  Future<void> _setRepeatDay(int chipIndex, bool selected) async {
+    final weekday = notificationWeekdayFromChipIndex(chipIndex);
+    final bit = 1 << (weekday - 1);
+    final repeatDays = selected
+        ? _notificationRepeatDays | bit
+        : _notificationRepeatDays & ~bit;
+    setState(() {
+      _notificationRepeatPreset = NotificationRepeatPreset.custom;
+      _notificationRepeatDays = repeatDays;
+    });
+    await _applyRepeatDays(repeatDays);
+  }
+
+  /// Persists a validated repeat mask, rescheduling immediately when the
+  /// daily summary is already enabled.
+  Future<void> _applyRepeatDays(int repeatDays) async {
+    if (!isValidNotificationRepeatMask(repeatDays)) {
+      _showMessage('Select at least one day for the notification schedule.');
+      return;
+    }
+    if (_dailyNotificationEnabled) {
+      await _saveNotificationSettings(
+        favoriteLotId: _favoriteLotId,
+        minuteOfDay: _notificationMinuteOfDay,
+        repeatDays: repeatDays,
+      );
+      return;
+    }
+    final saved = await ref
+        .read(sharedPreferencesProvider)
+        .setInt(SettingsPreferenceKeys.notificationRepeatDays, repeatDays);
+    if (!saved && mounted) {
+      _showMessage('Could not save the notification schedule.');
+    }
   }
 
   Future<void> _toggleDailyNotification(bool enabled) async {
@@ -136,6 +197,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     await _saveNotificationSettings(
       favoriteLotId: _favoriteLotId,
       minuteOfDay: _notificationMinuteOfDay,
+      repeatDays: _notificationRepeatDays,
       enableAfterSave: true,
     );
   }
@@ -143,8 +205,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Future<void> _saveNotificationSettings({
     required String favoriteLotId,
     required int minuteOfDay,
+    required int repeatDays,
     bool enableAfterSave = false,
   }) async {
+    if (!isValidNotificationRepeatMask(repeatDays)) {
+      _showMessage('Select at least one day for the notification schedule.');
+      return;
+    }
     setState(() => _savingNotification = true);
     try {
       final notificationService = ParkingNotificationService.instance;
@@ -161,6 +228,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       await notificationService.scheduleDailySummary(
         favoriteLotId: favoriteLotId,
         minuteOfDay: minuteOfDay,
+        repeatDays: repeatDays,
       );
       if (!mounted) return;
       final preferences = ref.read(sharedPreferencesProvider);
@@ -172,19 +240,24 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         SettingsPreferenceKeys.notificationMinuteOfDay,
         minuteOfDay,
       );
+      final repeatSaved = await preferences.setInt(
+        SettingsPreferenceKeys.notificationRepeatDays,
+        repeatDays,
+      );
       final enabledSaved = enableAfterSave
           ? await preferences.setBool(
               SettingsPreferenceKeys.dailyNotificationEnabled,
               true,
             )
           : true;
-      if (!favoriteSaved || !timeSaved || !enabledSaved) {
+      if (!favoriteSaved || !timeSaved || !repeatSaved || !enabledSaved) {
         _showMessage('Could not save all notification preferences.');
         return;
       }
       setState(() {
         _favoriteLotId = favoriteLotId;
         _notificationMinuteOfDay = minuteOfDay;
+        _notificationRepeatDays = repeatDays;
         _dailyNotificationEnabled = true;
       });
     } on PlatformException catch (error) {
@@ -200,16 +273,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Future<void> _setDarkMode(bool isDark) async {
     final saved = await ref
-        .read(sharedPreferencesProvider)
-        .setBool(SettingsPreferenceKeys.darkModeSelected, isDark);
+        .read(darkModePreferenceProvider.notifier)
+        .setEnabled(isDark);
     if (!mounted) return;
     if (!saved) {
       _showMessage('Could not save the display preference.');
-      return;
     }
-    // This preference is stored for later; applying an app-wide theme is not
-    // included until the existing screens support dark and light themes.
-    setState(() => _darkModeSelected = isDark);
   }
 
   Future<void> _logout() async {
@@ -229,24 +298,50 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ..showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Widget _buildRepeatDayChip(int chipIndex, String label) {
+    final palette = context.palette;
+    final weekday = notificationWeekdayFromChipIndex(chipIndex);
+    final active = _notificationRepeatDays & (1 << (weekday - 1)) != 0;
+    return ChoiceChip(
+      key: ValueKey('notification-repeat-day-$label'),
+      label: Text(label),
+      selected: active,
+      showCheckmark: false,
+      onSelected: _savingNotification
+          ? null
+          : (selected) => _setRepeatDay(chipIndex, selected),
+      selectedColor: palette.tealSoft,
+      backgroundColor: palette.paper,
+      side: BorderSide(color: active ? palette.teal : palette.line),
+      labelStyle: TextStyle(
+        color: active ? palette.teal : palette.navy,
+        fontWeight: FontWeight.w600,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cameraOverlayEnabled = ref.watch(cameraOverlayPreferenceProvider);
+    final darkMode = ref.watch(darkModePreferenceProvider);
+    final palette = context.palette;
     return Scaffold(
-      backgroundColor: AppColors.paper,
+      backgroundColor: palette.paper,
       appBar: const ParkOpsAppBar(section: 'PARKOPS', title: 'Settings'),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
         children: [
           _sectionTitle('Preferences'),
           _settingsCard([
-            const ListTile(
+            ListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
               title: Text(
                 'Camera preferences',
                 style: TextStyle(
-                  color: AppColors.navy,
+                  color: palette.navy,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -254,25 +349,25 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             SwitchListTile(
               key: const ValueKey('camera-overlay-setting'),
               contentPadding: EdgeInsets.zero,
-              title: const Text(
+              title: Text(
                 'Detection overlay',
                 style: TextStyle(
-                  color: AppColors.navy,
+                  color: palette.navy,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               subtitle: const Text('Show bay detection on the camera view'),
               value: cameraOverlayEnabled,
-              activeTrackColor: AppColors.navy,
+              activeTrackColor: palette.navy,
               onChanged: _setCameraOverlay,
             ),
-            const Divider(height: 1, color: AppColors.line),
+            Divider(height: 1, color: palette.line),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text(
+              title: Text(
                 'Favorite lot',
                 style: TextStyle(
-                  color: AppColors.navy,
+                  color: palette.navy,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -289,14 +384,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 onChanged: _setFavoriteLot,
               ),
             ),
-            const Divider(height: 1, color: AppColors.line),
+            Divider(height: 1, color: palette.line),
             ListTile(
               key: const ValueKey('notification-time-setting'),
               contentPadding: EdgeInsets.zero,
-              title: const Text(
+              title: Text(
                 'Daily notification',
                 style: TextStyle(
-                  color: AppColors.navy,
+                  color: palette.navy,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -306,18 +401,74 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 child: Text(_notificationTime.format(context)),
               ),
             ),
+            Divider(height: 1, color: palette.line),
+            ListTile(
+              key: const ValueKey('notification-repeat-setting'),
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                'Repeat',
+                style: TextStyle(
+                  color: palette.navy,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: Text(
+                _notificationRepeatDays == 0
+                    ? 'No days selected'
+                    : notificationRepeatLabel(_notificationRepeatDays),
+              ),
+              trailing: DropdownButton<NotificationRepeatPreset>(
+                key: const ValueKey('notification-repeat-preset-setting'),
+                value: _notificationRepeatPreset,
+                items: const [
+                  DropdownMenuItem(
+                    value: NotificationRepeatPreset.everyDay,
+                    child: Text('Every day'),
+                  ),
+                  DropdownMenuItem(
+                    value: NotificationRepeatPreset.weekdays,
+                    child: Text('Mon–Fri'),
+                  ),
+                  DropdownMenuItem(
+                    value: NotificationRepeatPreset.custom,
+                    child: Text('Custom'),
+                  ),
+                ],
+                onChanged: _savingNotification ? null : _setRepeatPreset,
+              ),
+            ),
+            if (_notificationRepeatPreset == NotificationRepeatPreset.custom)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (
+                      var index = 0;
+                      index < notificationWeekdayLabels.length;
+                      index++
+                    )
+                      _buildRepeatDayChip(
+                        index,
+                        notificationWeekdayLabels[index],
+                      ),
+                  ],
+                ),
+              ),
+            Divider(height: 1, color: palette.line),
             SwitchListTile(
               key: const ValueKey('daily-notification-setting'),
               contentPadding: EdgeInsets.zero,
-              title: const Text(
+              title: Text(
                 'Send daily summary',
                 style: TextStyle(
-                  color: AppColors.navy,
+                  color: palette.navy,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               value: _dailyNotificationEnabled,
-              activeTrackColor: AppColors.navy,
+              activeTrackColor: palette.navy,
               onChanged: _savingNotification ? null : _toggleDailyNotification,
             ),
           ]),
@@ -326,16 +477,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           _settingsCard([
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text(
+              title: Text(
                 'Theme preference',
                 style: TextStyle(
-                  color: AppColors.navy,
+                  color: palette.navy,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              subtitle: const Text(
-                'Saved for later; does not change the app theme yet',
-              ),
+              subtitle: const Text('Switch between light and dark mode'),
               trailing: SegmentedButton<bool>(
                 key: const ValueKey('theme-preference-setting'),
                 segments: const [
@@ -350,7 +499,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     icon: Icon(Icons.dark_mode_outlined),
                   ),
                 ],
-                selected: {_darkModeSelected},
+                selected: {darkMode},
                 showSelectedIcon: false,
                 onSelectionChanged: (selection) =>
                     _setDarkMode(selection.first),
@@ -383,8 +532,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     padding: const EdgeInsets.only(left: 4, bottom: 10),
     child: Text(
       title,
-      style: const TextStyle(
-        color: AppColors.navy,
+      style: TextStyle(
+        color: context.palette.navy,
         fontSize: 17,
         fontWeight: FontWeight.w700,
       ),
@@ -392,7 +541,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   );
 
   Widget _settingsCard(List<Widget> children) => Material(
-    color: Colors.white,
+    color: context.palette.card,
     borderRadius: BorderRadius.circular(18),
     clipBehavior: Clip.antiAlias,
     child: Padding(

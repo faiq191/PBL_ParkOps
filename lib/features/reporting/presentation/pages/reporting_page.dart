@@ -9,7 +9,7 @@ class ReportingPage extends StatelessWidget {
   const ReportingPage({super.key});
 
   Future<void> _openWhatsApp(BuildContext context) async {
-    final Uri whatsappUrl = Uri.parse('https://wa.me/628122600960');
+    final Uri whatsappUrl = Uri.parse('https://wa.me/6281234397940');
 
     try {
       final bool launched = await launchUrl(
@@ -35,19 +35,20 @@ class ReportingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Scaffold(
-      backgroundColor: AppColors.paper,
+      backgroundColor: palette.paper,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Reporting',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
-            color: AppColors.navy,
+            color: palette.navy,
           ),
         ),
-        backgroundColor: AppColors.paper,
-        foregroundColor: AppColors.navy,
+        backgroundColor: palette.paper,
+        foregroundColor: palette.navy,
         elevation: 0,
         centerTitle: false,
       ),
@@ -55,22 +56,22 @@ class ReportingPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
           children: [
-            const Text(
+            Text(
               'Need Assistance?',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
-                color: AppColors.navy,
+                color: palette.navy,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Choose how you want to report a parking issue '
               'or contact our customer service.',
               style: TextStyle(
                 fontSize: 14,
                 height: 1.5,
-                color: Color(0xFF8493A3),
+                color: palette.mist,
               ),
             ),
             const SizedBox(height: 28),
@@ -121,8 +122,9 @@ class _ReportingOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Material(
-      color: Colors.white,
+      color: palette.card,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
@@ -131,7 +133,7 @@ class _ReportingOption extends StatelessWidget {
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFE6EDF3)),
+            border: Border.all(color: palette.line),
           ),
           child: Row(
             children: [
@@ -139,10 +141,10 @@ class _ReportingOption extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE6EDF3),
+                  color: palette.mutedSurface,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(icon, size: 25, color: const Color(0xFF477AA5)),
+                child: Icon(icon, size: 25, color: palette.accent),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -151,29 +153,29 @@ class _ReportingOption extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.navy,
+                        color: palette.navy,
                       ),
                     ),
                     const SizedBox(height: 5),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         height: 1.4,
-                        color: Color(0xFF8493A3),
+                        color: palette.mist,
                       ),
                     ),
                   ],
                 ),
               ),
               if (showArrow)
-                const Icon(
+                Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 16,
-                  color: Color(0xFF477AA5),
+                  color: palette.accent,
                 ),
             ],
           ),

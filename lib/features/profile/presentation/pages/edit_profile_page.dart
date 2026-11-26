@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../theme/app_colors.dart';
 import '../providers/profile_provider.dart';
@@ -14,12 +16,15 @@ class EditProfilePage extends ConsumerStatefulWidget {
 }
 
 class _EditProfilePageState extends ConsumerState<EditProfilePage> {
+  static const int _nimLength = 10;
+
   late TextEditingController _nameController;
   late TextEditingController _bioController;
   late TextEditingController _emailController;
   late TextEditingController _nimController;
   final ImagePicker _picker = ImagePicker();
   String? _avatarPath;
+  String? _nimError;
 
   @override
   void initState() {
@@ -44,19 +49,36 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   Future<void> _pickImage(ImageSource source) async {
     final picked = await _picker.pickImage(
       source: source,
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 90,
+    );
+    if (picked == null) return;
+
+    final cropped = await ImageCropper().cropImage(
+      sourcePath: picked.path,
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
       maxWidth: 800,
       maxHeight: 800,
-      imageQuality: 85,
+      compressQuality: 85,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Crop photo',
+          toolbarColor: AppColors.navy,
+          toolbarWidgetColor: Colors.white,
+          activeControlsWidgetColor: AppColors.teal,
+        ),
+        IOSUiSettings(title: 'Crop photo'),
+      ],
     );
-    if (picked != null) {
-      setState(() => _avatarPath = picked.path);
-    }
+    if (cropped == null || !mounted) return;
+    setState(() => _avatarPath = cropped.path);
   }
 
   void _showImageOptions() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.paper,
+      backgroundColor: context.palette.paper,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -64,10 +86,13 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         child: Wrap(
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_library, color: AppColors.navy),
-              title: const Text(
+              leading: Icon(
+                Icons.photo_library,
+                color: sheetContext.palette.navy,
+              ),
+              title: Text(
                 'Choose from gallery',
-                style: TextStyle(color: AppColors.navy),
+                style: TextStyle(color: sheetContext.palette.navy),
               ),
               onTap: () {
                 Navigator.pop(sheetContext);
@@ -75,10 +100,13 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_camera, color: AppColors.navy),
-              title: const Text(
+              leading: Icon(
+                Icons.photo_camera,
+                color: sheetContext.palette.navy,
+              ),
+              title: Text(
                 'Take a photo',
-                style: TextStyle(color: AppColors.navy),
+                style: TextStyle(color: sheetContext.palette.navy),
               ),
               onTap: () {
                 Navigator.pop(sheetContext);
@@ -103,7 +131,26 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     );
   }
 
+  void _save() {
+    final nim = _nimController.text.trim();
+    if (nim.isNotEmpty && nim.length != _nimLength) {
+      setState(() => _nimError = 'NIM must be $_nimLength digits');
+      return;
+    }
+    ref.read(profileProvider.notifier).updateProfile(
+          ref.read(profileProvider).copyWith(
+                name: _nameController.text,
+                bio: _bioController.text,
+                email: _emailController.text,
+                nim: nim,
+                avatarPath: _avatarPath,
+              ),
+        );
+    Navigator.pop(context);
+  }
+
   Widget _buildAvatar() {
+    final palette = context.palette;
     return Center(
       child: GestureDetector(
         onTap: _showImageOptions,
@@ -111,11 +158,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           children: [
             CircleAvatar(
               radius: 52,
-              backgroundColor: AppColors.line,
+              backgroundColor: palette.line,
               backgroundImage:
                   _avatarPath != null ? FileImage(File(_avatarPath!)) : null,
               child: _avatarPath == null
-                  ? const Icon(Icons.person, size: 52, color: AppColors.mist)
+                  ? Icon(Icons.person, size: 52, color: palette.mist)
                   : null,
             ),
             Positioned(
@@ -126,7 +173,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                 decoration: BoxDecoration(
                   color: AppColors.teal,
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.paper, width: 2),
+                  border: Border.all(color: palette.paper, width: 2),
                 ),
                 child: const Icon(
                   Icons.camera_alt,
@@ -143,30 +190,20 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
     return Scaffold(
-      backgroundColor: AppColors.paper,
+      backgroundColor: palette.paper,
       appBar: AppBar(
-        backgroundColor: AppColors.paper,
+        backgroundColor: palette.paper,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.navy),
-        title: const Text(
+        iconTheme: IconThemeData(color: palette.navy),
+        title: Text(
           'Edit Profile',
-          style: TextStyle(color: AppColors.navy),
+          style: TextStyle(color: palette.navy),
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              ref.read(profileProvider.notifier).updateProfile(
-                    ref.read(profileProvider).copyWith(
-                          name: _nameController.text,
-                          bio: _bioController.text,
-                          email: _emailController.text,
-                          nim: _nimController.text,
-                          avatarPath: _avatarPath,
-                        ),
-                  );
-              Navigator.pop(context);
-            },
+            onPressed: _save,
             child: const Text(
               'Save',
               style: TextStyle(
@@ -185,7 +222,19 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           const SizedBox(height: 24),
           _buildTextField('Name', _nameController),
           const SizedBox(height: 16),
-          _buildTextField('NIM', _nimController),
+          _buildTextField(
+            'NIM',
+            _nimController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(_nimLength),
+            ],
+            errorText: _nimError,
+            onChanged: (_) {
+              if (_nimError != null) setState(() => _nimError = null);
+            },
+          ),
           const SizedBox(height: 16),
           _buildTextField('Email', _emailController),
           const SizedBox(height: 16),
@@ -195,31 +244,51 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    String? errorText,
+    ValueChanged<String>? onChanged,
+  }) {
+    final palette = context.palette;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: AppColors.mist,
+          style: TextStyle(
+            color: palette.mist,
             fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
-          style: const TextStyle(color: AppColors.navy),
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          onChanged: onChanged,
+          style: TextStyle(color: palette.navy),
           decoration: InputDecoration(
             filled: true,
-            fillColor: Colors.white,
+            fillColor: palette.card,
+            errorText: errorText,
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.line),
+              borderSide: BorderSide(color: palette.line),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppColors.teal),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.red),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.red),
             ),
           ),
         ),
